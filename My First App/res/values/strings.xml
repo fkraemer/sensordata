@@ -1,0 +1,11 @@
+<resources>
+
+    <string name="app_name">SensorData</string>
+    <string name="button_send">Send</string>
+    <string name="button_choose">Choose it!</string>
+    <string name="button_plot">Plot it!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_plot">PlotActivity</string>
+    <string name="title_activity_menu">MenuActivity</string>
+    <string name="title_activity_main">MainActivity</string>
+</resources>
