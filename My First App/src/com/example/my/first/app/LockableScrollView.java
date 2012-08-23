@@ -9,11 +9,23 @@ import android.widget.ScrollView;
 //extends ScrollView so one can disable the scroll possibility for some time
 public class LockableScrollView extends ScrollView {
 
+	public LockableScrollView(Context context, AttributeSet attrs, int defStyle) {
+		super(context, attrs, defStyle);
+		// TODO Auto-generated constructor stub
+	}
+
+	public LockableScrollView(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		// TODO Auto-generated constructor stub
+	}
+
 	public LockableScrollView(Context context) {
 		super(context);
 	}
 
-	private boolean scroll_enabled=true;
+	
+	 private boolean scroll_enabled=true;
+	 
 
 	public void setScrollEnable(boolean enable) {
 		scroll_enabled=enable;
@@ -41,8 +53,6 @@ public class LockableScrollView extends ScrollView {
 		}
 		
 	}
-	
-	
 	
 	
 	

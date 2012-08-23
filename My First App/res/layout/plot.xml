@@ -1,5 +1,5 @@
 
-<com.my.example.my.first.app.LockableScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.example.my.first.app.LockableScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/scroll"
     android:layout_width="match_parent"
@@ -35,4 +35,4 @@
     
 </LinearLayout>
 
-</com.my.example.my.first.app.LockableScrollView>
+</com.example.my.first.app.LockableScrollView>
