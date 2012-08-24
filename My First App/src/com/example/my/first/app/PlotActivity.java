@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.RectF;
 
 import com.androidplot.series.XYSeries;
 import com.androidplot.xy.*;
@@ -30,7 +32,9 @@ public class PlotActivity extends Activity implements OnTouchListener {
 	
 	private XYPlot temperatureSimpleXYPlot;
 	private XYPlot moistureSimpleXYPlot;
-	private TextView txt;
+	private TextView txt1;
+	private TextView txt2;
+	private TextView txt3;
 	private LockableScrollView scroll;
 	private Integer[] column;
 	private PointF minXY;
@@ -51,7 +55,9 @@ public class PlotActivity extends Activity implements OnTouchListener {
 		setContentView(R.layout.plot);
 		data = new DataStorage();
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
-		txt = (TextView)findViewById(R.id.txtview);
+		txt1 = (TextView)findViewById(R.id.txtview1);
+		txt2 = (TextView)findViewById(R.id.txtview2);
+		txt3 = (TextView)findViewById(R.id.txtview3);
 		temperatureSimpleXYPlot = (XYPlot) findViewById(R.id.temperatureXYPlot);
 		moistureSimpleXYPlot = (XYPlot) findViewById(R.id.moistureXYPlot);
 		
@@ -65,11 +71,11 @@ public class PlotActivity extends Activity implements OnTouchListener {
 				new DecimalFormat("#####.##"));
 		temperatureSimpleXYPlot.getGraphWidget().setDomainValueFormat(
 				new DecimalFormat("#####.##"));
-		temperatureSimpleXYPlot.getGraphWidget().setRangeLabelWidth(25);
 		temperatureSimpleXYPlot.setRangeLabel("");
 		temperatureSimpleXYPlot.setDomainLabel("");
 		temperatureSimpleXYPlot.disableAllMarkup();
 		moistureSimpleXYPlot.disableAllMarkup();
+
 		
 		
 		
@@ -108,7 +114,7 @@ public class PlotActivity extends Activity implements OnTouchListener {
 			temperatureSimpleXYPlot.addSeries(series1, series1Format);
 
 		}
-	/*	//filling the moisture plot
+	/**	//filling the moisture plot
 		for (int j = 0; j < 4; j++) {	
 			Integer[] column = data.getData().getMoistData(j);			
 			XYSeries series1 = new SimpleXYSeries(Arrays.asList(column),
@@ -125,6 +131,10 @@ public class PlotActivity extends Activity implements OnTouchListener {
 			case 2:
 				colour = Color.BLACK;
 				break;
+        <TextView 
+            android:id="@+id/txtview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 			case 3:
 				colour = Color.CYAN;
 				break;
@@ -154,15 +164,19 @@ public class PlotActivity extends Activity implements OnTouchListener {
 		} else dif=5;
 		ABS_Y_MIN=minXY.y-dif/2;
 		ABS_Y_MAX=maxXY.y+dif/2;
-		MAX_Y_DISTANCE=ABS_Y_MAX-ABS_Y_MIN;
-		temperatureSimpleXYPlot.setRangeBoundaries(ABS_Y_MIN,ABS_Y_MAX, BoundaryMode.FIXED);
+		MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
+		minXY.y+=10;		//TODO debug
+		maxXY.y-=10;
+		temperatureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
 		
 		ABS_X_MIN=minXY.x;
 		ABS_X_MAX=maxXY.x;
 		MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<48.0f) ? (ABS_X_MAX-ABS_X_MIN) : 48.0f;
-		temperatureSimpleXYPlot.setDomainBoundaries(ABS_X_MIN,ABS_X_MAX, BoundaryMode.FIXED);	//start with most recent (max 48)hours
+		minXY.x+=5;		//TODO debug
+		maxXY.x-=5;
+		temperatureSimpleXYPlot.setDomainBoundaries(minXY.x,maxXY.x, BoundaryMode.FIXED);	//start with most recent (max 48)hours
 		temperatureSimpleXYPlot.redraw();
-		
+
 		
 		//TODO, put Plot in subclass, begrenzungsmethoden, getter/setter, for touch stuff
 	}
@@ -173,45 +187,50 @@ public class PlotActivity extends Activity implements OnTouchListener {
 	int mode = NONE;
  
 	PointF firstFinger;
-	float lastScrolling;
+	PointF midPoint;
+	float lastScrollingX;
+	float lastScrollingY;
 	float distBetweenFingers;
 	float lastZooming;
 	 
 	
 
 	public boolean onTouch(View arg0, MotionEvent event) {
-		txt.setText("x:  "+String.valueOf(event.getX(0))+"  y: "+String.valueOf(event.getY(0)));
+		txt1.setText("x:  "+String.valueOf(event.getX(0))+"  y: "+String.valueOf(event.getY(0)));
 		switch (event.getAction() & MotionEvent.ACTION_MASK) {
 		case MotionEvent.ACTION_DOWN: // Start gesture
 			firstFinger = new PointF(event.getX(), event.getY());
 			mode = ONE_FINGER_DRAG;
 			break;
 		case MotionEvent.ACTION_UP: 
-			//scroll.setScrollEnable(true);
+			scroll.setScrollEnable(true);
 			break;
 		case MotionEvent.ACTION_POINTER_UP:
-		//	scroll.setScrollEnable(true);
-		/**	Timer t = new Timer();
+			Timer t = new Timer();
 			t.schedule(new TimerTask() {
 				
 				public void run() {
-					while(Math.abs(lastScrolling)>1f || Math.abs(lastZooming-1)<1.01){ 
-					lastScrolling*=.8;
-					//scroll(lastScrolling);
+					while(Math.abs(lastScrollingX)>1f || Math.abs(lastScrollingY)>1f || Math.abs(lastZooming-1)<1.01){ 
+					lastScrollingX*=.9;
+					lastScrollingY*=.9;
+					scroll(lastScrollingX,lastScrollingY);
 					lastZooming+=(1-lastZooming)*.2;
 					zoom(lastZooming);
-					temperatureSimpleXYPlot.setDomainBoundaries(minXY.x, maxXY.x, BoundaryMode.FIXED);
-					temperatureSimpleXYPlot.setRangeBoundaries(minXY.y, maxXY.x, BoundaryMode.FIXED);
+					setBoundaries();
 					try {
 						temperatureSimpleXYPlot.postRedraw();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
+					scroll.setScrollEnable(true);						
+					}
 					// the thread lives until the scrolling and zooming are imperceptible
 				}
-				}
-			}, 0);
-			*/
+				
+			}, 0);	
+
+			distBetweenFingers=spacing(event);
+			break;
 			
 		case MotionEvent.ACTION_POINTER_DOWN: // second finger
 			distBetweenFingers = spacing(event);
@@ -220,54 +239,109 @@ public class PlotActivity extends Activity implements OnTouchListener {
 				mode = TWO_FINGERS_DRAG;
 			}
 			break;
-		case MotionEvent.ACTION_MOVE:
-		/**	if (mode == ONE_FINGER_DRAG) {
+			
+					case MotionEvent.ACTION_MOVE:
+			scroll.setScrollEnable(false);
+			if (mode == ONE_FINGER_DRAG) {
 				PointF oldFirstFinger=firstFinger;
 				firstFinger=new PointF(event.getX(), event.getY());
-				lastScrolling=oldFirstFinger.x-firstFinger.x;		//x-difference
-				scroll(lastScrolling);
+				lastScrollingX=oldFirstFinger.x-firstFinger.x;		//x-difference
+				lastScrollingY=oldFirstFinger.y-firstFinger.y;		//y-difference
+				scroll(lastScrollingX,lastScrollingY);
 				lastZooming=(firstFinger.y-oldFirstFinger.y)/temperatureSimpleXYPlot.getHeight();
-				if (lastZooming<0)
+			/**if (lastZooming<0)
 					lastZooming=1/(1-lastZooming);
 				else
 					lastZooming+=1;
-				zoom(lastZooming);
-				temperatureSimpleXYPlot.setDomainBoundaries(minXY.x, maxXY.x, BoundaryMode.FIXED);
+				zoom(lastZooming);*/
+				setBoundaries();
 				temperatureSimpleXYPlot.redraw();
  
-			} else */if (mode == TWO_FINGERS_DRAG) {
-				//scroll.setScrollEnable(false);
+			} else if (mode == TWO_FINGERS_DRAG) {
 				float oldDist =distBetweenFingers; 
 
 				distBetweenFingers=spacing(event);
 				lastZooming=oldDist/distBetweenFingers;
 				zoom(lastZooming);
-				
-				temperatureSimpleXYPlot.setDomainBoundaries(minXY.x, maxXY.x, BoundaryMode.FIXED);
-				temperatureSimpleXYPlot.setRangeBoundaries(minXY.y, maxXY.y, BoundaryMode.FIXED);
+
+				setBoundaries();
 				temperatureSimpleXYPlot.redraw();
 			}
 			break;
 		} 
+		setBoundaries();
 		return true;
 	}
  
 	private void zoom(float scale) {
 		// set x-axis borders, limit to maximum borders
 		float domainSpan = maxXY.x	- minXY.x;
-		float domainMidPoint = maxXY.x		- domainSpan / 2.0f;
-		float domainOffset = domainSpan * scale / 2.0f;
+		float domainMidPoint= maxXY.x - domainSpan/ 2.0f;	//setMid() ,must have been called recently:
+		//float factorX =minXY.x + midPoint.x / temperatureSimpleXYPlot.getWidth() * domainSpan;
+		//txt1.setText(String.valueOf(factorX) +"    "+ String.valueOf(temperatureSimpleXYPlot.getWidth()));
+		
+		float domainOffset = domainSpan * scale / 2.0f;		
 		float[] k=forceBorders(minXY.x,maxXY.x,domainMidPoint- domainOffset,domainMidPoint+ domainOffset,Direction.X);
 		minXY.x=k[0];
 		maxXY.x=k[1];
-	
 		//set y-axis borders, keep in maximumborders
 		float rangeSpan = maxXY.y - minXY.y;
-		float rangeMidPoint = maxXY.y 	 	- rangeSpan / 2.0f;
 		float rangeOffset = rangeSpan * scale / 2.0f;
+		float rangeMidPoint= maxXY.y - rangeSpan/ 2.0f;
 		k=forceBorders(minXY.y,maxXY.y,rangeMidPoint- rangeOffset,rangeMidPoint+ rangeOffset,Direction.Y);
 		minXY.y=k[0];
 	    maxXY.y=k[1];
+	}
+
+	//push window
+	private void scroll(float panX, float panY) {
+		float domainSpan = maxXY.x	- minXY.x;
+		float step = domainSpan / temperatureSimpleXYPlot.getWidth();
+		float offset = panX * step;
+		
+		float[] k=forceBorders(minXY.x, maxXY.x, minXY.x+offset, maxXY.x+offset, Direction.X);
+		minXY.x=k[0];
+	    maxXY.x=k[1];
+	    
+	    float rangeSpan = minXY.y - maxXY.y;
+		step = rangeSpan / temperatureSimpleXYPlot.getHeight();
+		offset = panY * step;
+		
+		k=forceBorders(minXY.y, maxXY.y, minXY.y+offset, maxXY.y+offset, Direction.Y);
+		minXY.y=k[0];
+	    maxXY.y=k[1];
+		
+	}
+	
+	//distance between fingers
+	private float spacing(MotionEvent event) 
+	{
+		if (event.getPointerCount() > 1) 		//make sure there are 2touches, otherwise exceptions
+		{
+		float x = event.getX(0) - event.getX(1);
+		float y = event.getY(0) - event.getY(1);
+		return FloatMath.sqrt(x * x + y * y);
+		}
+		return 0;
+	}
+	
+/**	private void setMid(MotionEvent ev)			// planned to zoom centered around the touch point
+	{
+		if (ev.getPointerCount() > 1) 		//case: 2touches
+		{
+			midPoint = new PointF(0.5f * ev.getX(0) + 0.5f * ev.getX(1),
+					0.5f * ev.getY(0) + 0.5f * ev.getY(1));
+		} else
+			midPoint = new PointF(ev.getX(0),ev.getY(0));
+		
+	}*/
+	
+	private void setBoundaries() 
+	{
+		temperatureSimpleXYPlot.setDomainBoundaries(minXY.x, maxXY.x, BoundaryMode.FIXED);
+		temperatureSimpleXYPlot.setRangeBoundaries(minXY.y, maxXY.y, BoundaryMode.FIXED);
+		//txt3.setText("X: "+String.valueOf(minXY.x) + "  - "+String.valueOf(maxXY.x)+
+		//		"Y: "+String.valueOf(minXY.y) + "  - "+String.valueOf(maxXY.y));
 	}
 	
 	private  float[] forceBorders(float oldMin, float oldMax, float newMin, float newMax, Direction dir) {
@@ -287,53 +361,30 @@ public class PlotActivity extends Activity implements OnTouchListener {
 			maxDistance=MAX_Y_DISTANCE;
 			minValue=ABS_Y_MIN;
 			maxValue=ABS_Y_MAX;
-		}	
+		}
+		StringBuilder sb= new StringBuilder();
 		//case: lower border under minimum, covers cases zoom out, scroll out
 		if (newMin<minValue) {
 			lowerBorder=minValue;
-			upperBorder=minValue+newMax-newMin;	//realize distance-change, thereby applicable for scroll and zoom
-			
+			upperBorder=minValue+(newMax-newMin);	//realize distance-change, thereby applicable for scroll and zoom
+			sb.append("  force: unterschritten");
 		}
 		
 		//case: upper border over maximum, 
 		if (newMax>maxValue) {
 			upperBorder=maxValue;
-			lowerBorder=maxValue+newMax-newMin;
+			lowerBorder=maxValue-(newMax-newMin);
+			sb.append("  force: ueberschritten");
 		}
 		//case: range to small/ and case: range to big
-		if ((newMax-newMin) < minDistance || (newMax-newMin) > maxDistance) {
+		if (Math.abs(newMax-newMin) < minDistance || Math.abs(newMax-newMin) > maxDistance) {
 			lowerBorder=oldMin;
 			upperBorder=oldMax;
+			sb.append("  range problem");
 		}
+		//txt2.setText(sb.toString());
 		return new float[]{lowerBorder,upperBorder};
 	}
- 
-	//push window
-	private void scroll(float pan) {
-		float domainSpan = maxXY.x	- minXY.x;
-		float step = domainSpan / temperatureSimpleXYPlot.getWidth();
-		float offset = pan * step;
-		
-		float[] k=forceBorders(minXY.x, maxXY.x, minXY.x+offset, maxXY.x+offset, Direction.X);
-		minXY.y=k[0];
-	    maxXY.y=k[1];
-		
-	}
- 
-	//distance between fingers
-	private float spacing(MotionEvent event) 
-	{
-		if (event.getPointerCount() > 1) 		//make sure there are 2touches, otherwise exceptions
-		{
-		float x = event.getX(0) - event.getX(1);
-		float y = event.getY(0) - event.getY(1);
-		return FloatMath.sqrt(x * x + y * y);
-		}
-		return 0;
-		}
-		
-		
-
 	
 	  
 }

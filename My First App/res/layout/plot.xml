@@ -19,7 +19,15 @@
         title="Temperature Data" />
         
         <TextView 
-            android:id="@+id/txtview"
+            android:id="@+id/txtview1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <TextView 
+            android:id="@+id/txtview2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <TextView 
+            android:id="@+id/txtview3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
     

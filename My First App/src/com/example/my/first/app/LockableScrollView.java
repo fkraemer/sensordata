@@ -38,8 +38,9 @@ public class LockableScrollView extends ScrollView {
 
 	//overrides and returns false, for case: scrolling disabled
 	public boolean onInterceptTouchEvent(MotionEvent ev) {
+		 
 		if (!scroll_enabled) return false;
-		else return super.onInterceptTouchEvent(ev);
+		else return (ev.getPointerCount()>1) ? super.onInterceptTouchEvent(ev) : false;		//make sure super can call getter on event
 	}
 
 	//overrides, returns false on Action_Down, thus doesnt scroll, else just returns super.methods
