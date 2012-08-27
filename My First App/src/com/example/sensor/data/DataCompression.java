@@ -8,6 +8,9 @@ public abstract class DataCompression {
 	private final static int ANCHORLENGTH=14;
 	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	private final static int[] anchorCodeBook={7,4,5,5,6,9,9,9,9,9,9,9,9,7};
+	private final static int[][] huff28 = { { 0,  -5,   -1,    5,   1,   10,  15,  1001,  -10,   20,  25,   -2,    2,    
+			3,  -4,   -3,   11,  30,  -42,  -16,   -6,    8,   44,  60,   69,   70, 1002 },{ 0,   2,   12,   13,  28,   58,   59,  120,  121,  122,  123,  124,  125,  
+			252, 506, 507, 508, 509, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 4094, 4095  }};
 	
 	public static void main(String[] args) {
 		//System.out.println(String.valueOf('0')+   "  ==>  " + String.valueOf(smsCharToValue('0'))); // test smsCharToValue
@@ -44,7 +47,7 @@ public abstract class DataCompression {
 				result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
 				} catch (NumberFormatException e)
 				{
-					result[i]=255;
+					result[i]=Integer.MAX_VALUE;
 				}
 				pos=newpos;
 			}
