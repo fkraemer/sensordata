@@ -13,14 +13,15 @@ public abstract class DataCompression {
 		//System.out.println(String.valueOf('0')+   "  ==>  " + String.valueOf(smsCharToValue('0'))); // test smsCharToValue
 		
 		//test smsToBin
-		System.out.println(smsToBin("ABCDEFjhkGHhjk".toCharArray()));
-		
+		//System.out.println(smsToBin("ABCDEFjhkGHhjk".toCharArray()));
+		//6HKQ8B00003NQJIQJC 00000000000D3XrrrrWRkw11Xvy:VF00000400102W
+		decodeAnchor("6HKQ8B00003NQJIQJC");
 	}
 	
 	public static int[][] decode(String s)
 	{
 		String anchor=s.substring(0, 17);
-		String difs=s.substring(8, s.length()-1);
+		String difs=s.substring(18, s.length()-1);
 		int [] anchorvec = decodeAnchor(anchor);
 		
 		
@@ -29,20 +30,32 @@ public abstract class DataCompression {
 
 	private static int[] decodeAnchor(String anchor) {
 		String anchorBinString = smsToBin(anchor.toCharArray());
-		return bintoAnchorVec(anchorBinString,anchorCodeBook,anchorCodeBook);
+		return bintoAnchorVec(anchorBinString,anchorCodeBook,anchorOffsets);
+		
 	}
 
 	private static int[] bintoAnchorVec(String anchorBinString,
-			int[] anchorcodebook2, int[] anchorcodebook3) {
-		// TODO Auto-generated method stub
-		return null;
+			int[] anchorcodebook, int[] anchoroffsets) {
+		int [] result= new int[ANCHORLENGTH];
+		int pos=0;
+		for (int i=0; i<ANCHORLENGTH;i++) {
+				int newpos=pos+anchorcodebook[i];
+				try {
+				result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
+				} catch (NumberFormatException e)
+				{
+					result[i]=255;
+				}
+				pos=newpos;
+			}
+		return result;
 	}
 	
 
 	//The chars are translated to Integers and then Binary code with constant length per char
 	private static String smsToBin(char[] c) {
-		final int CBITS = 6;
-		char[] collect=new char[CBITS * ANCHORLENGTH];
+		final int CBITS = 6;						//TODO eventl auf variable laenge hin anpassen
+		char[] collect=new char[CBITS * c.length];
 		Arrays.fill(collect, '0');								//fill with zeros before adding binary code
 		StringBuilder sb=new StringBuilder(String.valueOf(collect));
 		for (int i=0; i < c.length; i++)
@@ -70,7 +83,6 @@ public abstract class DataCompression {
 		
 	}
 
-	//private static int smsCharToValue(char c) {
 		
 	
 	
