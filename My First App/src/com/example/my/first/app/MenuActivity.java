@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -28,7 +29,7 @@ public class MenuActivity extends Activity {
 	private String[] data = new String[0];
 	private String[] numbers = new String[0];
 	private String[] adapterFill = new String[0];
-	private DataStorage storage = new DataStorage(); 
+	private DataStorage storage = new DataStorage();
 	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
 
 	protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +128,7 @@ public class MenuActivity extends Activity {
 		
 		for (int i=0; i <interestCount; i++) 
 		{
+			System.out.println(Long.toString(Long.getLong(numbers[i].substring(1, numbers[i].length()))) + data[i]);
 			DataSet neu = storage.addNewDataSet(data[i], Long.getLong(numbers[i].substring(1, numbers[i].length())));
 			Date time=neu.getDate();
 			adapterFill[i]=(Integer.toString(i)+")  from  +"+neu.getId()+"   "+time.toString());

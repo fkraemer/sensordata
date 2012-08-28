@@ -13,11 +13,10 @@ public class DataStorage {
 	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
 	private int[][] raw;
 	private DataSet debug;
-	//Array von DataSets implementieren
 	
 	public DataStorage()
 	{
-			raw =new int[][] { { 30, 93, 99, 86, 140, 155, 160, 135, 56 },
+		/**	raw =new int[][] { { 30, 93, 99, 86, 140, 155, 160, 135, 56 },
 				{ 30, 92, 98, 86, 140, 155, 160, 135, 56 },
 				{ 30, 92, 98, 86, 140, 150, 160, 135, 56 },
 				{ 30, 91, 98, 85, 140, 150, 160, 140, 56 },
@@ -41,7 +40,7 @@ public class DataStorage {
 				{ 30, 85, 105, 90, 140, 155, 155, 125, 55 },
 				{ 30, 85, 105, 91, 135, 155, 150, 125, 55 },
 				{ 30, 104, 106, 90, 130, 145, 150, 125, 55 } };
-			debug = new DataSet(raw,5,0);
+			debug = new DataSet(raw,5,0); */
 		
 	}
 	
