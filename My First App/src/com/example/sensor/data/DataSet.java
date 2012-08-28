@@ -6,6 +6,22 @@ import		java.util.Arrays;
 public class DataSet {
 	
 	
+public Date getDate() {
+		return date;
+	}
+
+	public void setDate(Date date) {
+		this.date = date;
+	}
+
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
+	}
+
 //TODO constants
 private Date date;
 private long id;

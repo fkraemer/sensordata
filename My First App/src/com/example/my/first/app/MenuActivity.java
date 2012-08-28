@@ -18,12 +18,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Date;
+
+import com.example.sensor.data.DataSet;
+import com.example.sensor.data.DataStorage;
 
 public class MenuActivity extends Activity {
 
 	private String[] data = new String[0];
 	private String[] numbers = new String[0];
-	private final String[] numbersOfInterest = { "+61431220285" };
+	private String[] adapterFill = new String[0];
+	private DataStorage storage = new DataStorage(); 
+	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
 
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -31,7 +37,7 @@ public class MenuActivity extends Activity {
 		ListView list = (ListView) findViewById(R.id.listView1);
 		if (getSms(this) > 0) {
 			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_list_item_1, data);
+					android.R.layout.simple_list_item_1, adapterFill);
 			list.setAdapter(adapter);
 			saveSms();
 		}
@@ -96,8 +102,8 @@ public class MenuActivity extends Activity {
 					searchNumbers[i] = curs.getString(curs
 							.getColumnIndex("address"));
 					boolean check = false;
-					for (int j = 0; j < numbersOfInterest.length; j++) {
-						if (searchNumbers[i].equals(numbersOfInterest[j])) {
+					for (int j = 0; j < NUMBERSOFINTEREST.length; j++) {
+						if (searchNumbers[i].equals(NUMBERSOFINTEREST[j])) {
 							check = true;
 						}
 					}
@@ -109,6 +115,7 @@ public class MenuActivity extends Activity {
 					}
 					curs.moveToNext();
 				} catch (IllegalArgumentException e) {
+
 					System.out.println("No Sms in Database.");
 				}
 			}
@@ -116,7 +123,16 @@ public class MenuActivity extends Activity {
 		curs.close();
 		numbers = Arrays.copyOfRange(numbers, 0, interestCount);
 		data = Arrays.copyOfRange(data, 0, interestCount);
-
+		adapterFill = new String[interestCount];
+		
+		for (int i=0; i <interestCount; i++) 
+		{
+			DataSet neu = storage.addNewDataSet(data[i], Long.getLong(numbers[i].substring(1, numbers[i].length())));
+			Date time=neu.getDate();
+			adapterFill[i]=(Integer.toString(i)+")  from  +"+neu.getId()+"   "+time.toString());
+		
+		}
+		
 		
 		return interestCount;
 	}

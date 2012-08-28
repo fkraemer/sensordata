@@ -1,13 +1,16 @@
 package com.example.sensor.data;
 
+import android.annotation.TargetApi;
 import      java.text.SimpleDateFormat;
-import		java.util.Date;
+import 		java.util.ArrayList;
+import 		java.util.Arrays;
 import		java.util.Calendar;
 
 
 
 public class DataStorage {
 
+	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
 	private int[][] raw;
 	private DataSet debug;
 	//Array von DataSets implementieren
@@ -42,8 +45,37 @@ public class DataStorage {
 		
 	}
 	
-	public DataSet getData()
+	@TargetApi(9)
+	public DataSet addNewDataSet(String rawData, long id)
 	{
-		return debug;
+		int [][] result = DataCompression.decode(rawData);
+
+		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
+		c.set(result[0][1], result[0][1], result[0][2], result[0][3], result[0][4]);
+		
+		DataSet element=new DataSet(Arrays.copyOfRange(result, 1, result.length), c.getTimeInMillis(), id);
+		storage.add(element);
+		
+		return element;
+	}
+	
+	public DataSet getData(long date, long id)
+	{
+		for(DataSet s: storage)
+		{
+			if (s.getDate().equals(date) && s.getId()==id) return s;
+		}
+		return null;
+	}
+	
+	public ArrayList<DataSet> getDataById(long id)
+	{
+		ArrayList<DataSet> result = new ArrayList<DataSet>();
+		for(DataSet s: storage)
+		{
+			if (s.getId()==id) 
+				result.add(s);
+		}
+		return result;
 	}
 }
