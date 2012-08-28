@@ -80,7 +80,7 @@ public class PlotActivity extends Activity implements OnTouchListener {
 		
 		
 
-		for (int j = 0; j < 4; j++) {	
+	/**	for (int j = 0; j < 4; j++) {	
 			Integer[] column = data.getData().getTempData(j);
 			//Integer[] column= {1,7,23,5,9,12,3};			//for debug
 			
