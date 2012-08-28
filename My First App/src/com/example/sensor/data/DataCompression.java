@@ -38,7 +38,7 @@ public abstract class DataCompression {
 		{
 			for (int j=0;j<SENSORCOUNT;j++)
 			{
-			result[i][j]=result[i-1][j]+difsVec[i-1][j];		//get absolutes	
+			result[i][j]=result[i-1][j]+difsVec[i-2][j];		//get absolutes	
 			}
 		}
 		
@@ -47,7 +47,6 @@ public abstract class DataCompression {
 
 	private static int[][] decodeDifs(String difs) {
 		String s = smsToBin(difs.toCharArray(), CBITS);
-		System.out.println(s);
 		return huffBinToDifs(s);
 		
 	}
