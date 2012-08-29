@@ -52,6 +52,7 @@ public abstract class DataCompression {
 			}
 		}
 		
+		//TODO: case: too short exception ??
 		if (excep!=null)
 		{
 			excep.setDataInts(result);
@@ -97,7 +98,7 @@ public abstract class DataCompression {
 					errorCount++;
 				}
 				if (rowCount == MEASURECOUNT+1) {		//protects from result-ArrayOutOfBounce
-					throw new DecodeRecoverException("Decode-stream to long. Cutting of end.",result);
+					throw new DecodeRecoverException("Decode-stream too long. Cutting of end.",result);
 				} else 	result[rowCount][columnCount]=code;
 				
 				

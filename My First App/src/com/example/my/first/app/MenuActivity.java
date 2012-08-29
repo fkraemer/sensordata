@@ -22,6 +22,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
 
+import com.example.sensor.data.DataCompression;
 import com.example.sensor.data.DataSet;
 import com.example.sensor.data.DataStorage;
 import com.example.sensor.data.DecodeException;
@@ -115,13 +116,7 @@ public class MenuActivity extends Activity {
 					}
 					if (check) {
 						numbers[interestCount] = searchNumbers[i];
-						data[interestCount] = curs.getString(curs
-								.getColumnIndex("body"));Context context = getApplicationContext();
-								CharSequence text = "Hello toast!";
-								int duration = Toast.LENGTH_SHORT;
-
-								Toast toast = Toast.makeText(context, text, duration);
-								toast.show();
+						data[interestCount] = curs.getString(curs.getColumnIndex("body"));
 						interestCount++;
 					}
 					curs.moveToNext();
@@ -140,16 +135,18 @@ public class MenuActivity extends Activity {
 		{
 			DataSet neu = null;
 			try {
-				neu = storage.addNewDataSet(data[i], Long.getLong(numbers[i].substring(1, numbers[i].length())));
+				neu = storage.addNewDataSet(DataCompression.decode(data[i]), 
+						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeFatalException e) {
-				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				toast.show();
+				//Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				//toast.show();
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				toast.show();
-				neu=((DecodeRecoverException) e).getData();
+				//Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				//toast.show();
+				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),
+						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeException e) {			//unreachable}
 			}
 			
