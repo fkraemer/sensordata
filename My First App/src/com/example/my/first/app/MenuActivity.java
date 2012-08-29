@@ -35,6 +35,7 @@ public class MenuActivity extends Activity {
 	private String[] numbers = new String[0];
 	private String[] adapterFill = new String[0];
 	private DataStorage storage = new DataStorage();
+	private int[] selectedSetIds;
 	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
 
 	protected void onCreate(Bundle savedInstanceState) {
@@ -165,6 +166,8 @@ public class MenuActivity extends Activity {
 
 	public void plotPlots(View view) {
 		Intent myIntent = new Intent(this, PlotActivity.class);
+		myIntent.putExtra("storage", storage);
+		myIntent.putExtra("selected", selectedSetIds);
 		startActivity(myIntent);
 	}
 

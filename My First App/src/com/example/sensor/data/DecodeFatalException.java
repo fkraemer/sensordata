@@ -21,5 +21,4 @@ public class DecodeFatalException extends DecodeException {
 		
 		// TODO Auto-generated constructor stub
 	}
-
 }

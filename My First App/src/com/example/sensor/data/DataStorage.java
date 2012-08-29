@@ -1,6 +1,8 @@
 package com.example.sensor.data;
 
 import android.annotation.TargetApi;
+
+import java.io.Serializable;
 import      java.text.SimpleDateFormat;
 import 		java.util.ArrayList;
 import 		java.util.Arrays;
@@ -8,7 +10,7 @@ import		java.util.Calendar;
 
 
 
-public class DataStorage {
+public class DataStorage implements Serializable{
 
 	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
 	private int[][] raw;
