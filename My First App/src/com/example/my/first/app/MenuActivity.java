@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -22,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -38,7 +40,7 @@ public class MenuActivity extends Activity {
 	private String[] numbers = new String[0];
 	private String[] adapterFill = new String[0];
 	private DataStorage storage = new DataStorage();
-	private int[] selectedSetIds;
+	private ArrayList<Integer> selectedIds =  new ArrayList<Integer>();
 	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
 
 	protected void onCreate(Bundle savedInstanceState) {
@@ -56,14 +58,18 @@ public class MenuActivity extends Activity {
 		    	  public void onItemClick(AdapterView<?> parent, View view,
 		    	    int position, long id) {
 		    		  
-		    		  long [] checked=list.getCheckedItemIds();
-		    		  Context cx = getApplicationContext();
-		    		  StringBuilder sb = new StringBuilder();
-		    		  for (int i=0;i<checked.length;i++)
+		    		  SparseBooleanArray checked = list.getCheckedItemPositions();
+		    		  for (int i=0;i<checked.size();i++)
 		    		  {
-		    			  sb.append(Long.toString(checked[i]));
+		    			  if (checked.valueAt(i))  selectedIds.add(i);
+		    		  }
+		    		  StringBuilder sb = new StringBuilder();
+		    		  for (int i=0;i<selectedIds.size();i++)
+		    		  {
+		    			  sb.append(Integer.toString(selectedIds.get(i)));
 		    			  sb.append("   ");
 		    		  }
+		    		  Context cx = getApplicationContext();
 		    		  Toast toast = Toast.makeText(cx, sb.toString(), Toast.LENGTH_SHORT);
 		    		  toast.show();
 		    	  }
@@ -195,7 +201,7 @@ public class MenuActivity extends Activity {
 	public void plotPlots(View view) {
 		Intent myIntent = new Intent(this, PlotActivity.class);
 		myIntent.putExtra("storage", storage);
-		myIntent.putExtra("selected", selectedSetIds);
+		myIntent.putIntegerArrayListExtra("selected", selectedIds);
 		startActivity(myIntent);
 	}
 
