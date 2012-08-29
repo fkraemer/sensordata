@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 import android.database.Cursor;
 
 import java.io.File;
@@ -23,6 +24,9 @@ import java.util.Date;
 
 import com.example.sensor.data.DataSet;
 import com.example.sensor.data.DataStorage;
+import com.example.sensor.data.DecodeException;
+import com.example.sensor.data.DecodeFatalException;
+import com.example.sensor.data.DecodeRecoverException;
 
 public class MenuActivity extends Activity {
 
@@ -97,6 +101,7 @@ public class MenuActivity extends Activity {
 		String[] searchNumbers = new String[count];
 		int interestCount = 0;
 
+		//reading sms from phone
 		if (curs.moveToFirst()) {
 			for (int i = 0; i < curs.getCount(); i++) {
 				try {
@@ -111,7 +116,12 @@ public class MenuActivity extends Activity {
 					if (check) {
 						numbers[interestCount] = searchNumbers[i];
 						data[interestCount] = curs.getString(curs
-								.getColumnIndex("body"));
+								.getColumnIndex("body"));Context context = getApplicationContext();
+								CharSequence text = "Hello toast!";
+								int duration = Toast.LENGTH_SHORT;
+
+								Toast toast = Toast.makeText(context, text, duration);
+								toast.show();
 						interestCount++;
 					}
 					curs.moveToNext();
@@ -122,21 +132,38 @@ public class MenuActivity extends Activity {
 			}
 		}
 		curs.close();
-		numbers = Arrays.copyOfRange(numbers, 0, interestCount);
-		data = Arrays.copyOfRange(data, 0, interestCount);
-		adapterFill = new String[interestCount];
+		
+		//decoding sms
+		int fatalCount=0;
 		
 		for (int i=0; i <interestCount; i++) 
 		{
-			System.out.println(Long.toString(Long.getLong(numbers[i].substring(1, numbers[i].length()))) + data[i]);
-			DataSet neu = storage.addNewDataSet(data[i], Long.getLong(numbers[i].substring(1, numbers[i].length())));
-			Date time=neu.getDate();
-			adapterFill[i]=(Integer.toString(i)+")  from  +"+neu.getId()+"   "+time.toString());
+			DataSet neu = null;
+			try {
+				neu = storage.addNewDataSet(data[i], Long.getLong(numbers[i].substring(1, numbers[i].length())));
+			} catch (DecodeFatalException e) {
+				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				toast.show();
+				fatalCount++;
+				continue;
+			}catch (DecodeRecoverException e) {
+				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				toast.show();
+				neu=((DecodeRecoverException) e).getData();
+			} catch (DecodeException e) {			//unreachable}
+			}
+			
 		
 		}
 		
+		//filling adapter with successfull decoded datasets
+		adapterFill = new String[storage.size()];		//TODO change to ArrayList, if adding service checking for new SMS
+		for (int i=0; i<storage.size(); i++)
+		{
+			adapterFill[i] = storage.getDatabyLocalId(i).toString();
+		}
 		
-		return interestCount;
+		return interestCount-fatalCount;
 	}
 
 	public void plotPlots(View view) {

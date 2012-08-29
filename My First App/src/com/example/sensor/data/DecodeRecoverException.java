@@ -1,0 +1,42 @@
+package com.example.sensor.data;
+
+public class DecodeRecoverException extends DecodeException {
+	
+	private DataSet data=null;
+	private int [][] dataInts;
+	
+	public DecodeRecoverException(String detailMessage,DataSet data) {
+		super(detailMessage);
+		this.data=data;
+	}
+	
+	public DecodeRecoverException(String detailMessage,int[][] dataInts) {
+		super(detailMessage);
+		this.dataInts=dataInts;
+	}
+
+	public DecodeRecoverException() {
+		super();
+	}
+
+	public DecodeRecoverException(String detailMessage) {
+		super(detailMessage);
+	}
+
+	public DataSet getData() {
+		return data;
+	}
+
+	public void setData(DataSet data) {
+		this.data = data;
+	}
+
+	public int[][] getDataInts() {
+		return dataInts;
+	}
+
+	public void setDataInts(int[][] dataInts) {
+		this.dataInts = dataInts;
+	}
+	
+}

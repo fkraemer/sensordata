@@ -45,15 +45,32 @@ public class DataStorage {
 	}
 	
 	@TargetApi(9)
-	public DataSet addNewDataSet(String rawData, long id)
+	public DataSet addNewDataSet(String rawData, long id) throws DecodeException
 	{
-		int [][] result = DataCompression.decode(rawData);
+		DecodeRecoverException excep=null;
+		int[][] result = null;
+		try {
+			result = DataCompression.decode(rawData);
+		} catch (DecodeFatalException e) {
+			throw e;
+		}catch (DecodeRecoverException e) {
+			excep=(DecodeRecoverException) e;
+			result=excep.getDataInts();
+		} catch (DecodeException e) {			//unreachable
+		}
 
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
-		c.set(result[0][1], result[0][1], result[0][2], result[0][3], result[0][4]);
-		
-		DataSet element=new DataSet(Arrays.copyOfRange(result, 1, result.length), c.getTimeInMillis(), id);
+		c.set(result[0][0]+2000, result[0][1]-1, result[0][2], result[0][3], result[0][4]);
+		int localId =storage.size();	//Position, where DataSet will be placed 
+		DataSet element=new DataSet(Arrays.copyOfRange(result, 1, result.length), c.getTimeInMillis(), id, localId);
 		storage.add(element);
+		
+		
+		if (excep!=null)
+		{
+			excep.setData(element);
+			throw excep; 
+		}
 		
 		return element;
 	}
@@ -76,5 +93,15 @@ public class DataStorage {
 				result.add(s);
 		}
 		return result;
+	}
+	
+	public DataSet getDatabyLocalId(int localId)
+	{
+		return storage.get(localId);
+	}
+	
+	public int size()
+	{
+		return storage.size();
 	}
 }

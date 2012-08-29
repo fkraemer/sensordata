@@ -26,37 +26,56 @@ public abstract class DataCompression {
 	 * @param s: input is rachel-huffman decoded sensordata/sms-message
 	 * @return: [number of measures + 1][number of sensors], where the first row [0][1-5] provides the timestamp YY-MM-DD-HH-MM 
 	 */
-	public static int[][] decode(String s)
-	{
-		int [] anchorVec = decodeAnchor(s.substring(0, 18));
-		int [][] difsVec = decodeDifs(s.substring(18, s.length()));		
+	public static int[][] decode(String s) throws DecodeException
+	{		
 		int[][] result = new int[MEASURECOUNT+1][SENSORCOUNT];
+		int [] anchorVec = decodeAnchor(s.substring(0, 18));
+		DecodeRecoverException excep=null;
 		
+		try {
+			int [][] difsVec = decodeDifs(s.substring(18, s.length()),result);
+		} catch (DecodeFatalException e) {
+			throw e;
+		}catch (DecodeRecoverException e) {
+			excep=(DecodeRecoverException) e;
+			result=excep.getDataInts();
+		} catch (DecodeException e) {			//unreachable
+		}	
+
 		result[0] = Arrays.copyOfRange(anchorVec,0,5);	//hardcoded:leading5 ints are time stamp
 		result[1] = Arrays.copyOfRange(anchorVec,5,ANCHORLENGTH);	//hardcoded:leading5 ints are time stamp
 		for (int i=2;i<MEASURECOUNT+1;i++)
 		{
 			for (int j=0;j<SENSORCOUNT;j++)
 			{
-			result[i][j]=result[i-1][j]+difsVec[i-2][j];		//get absolutes	
+			result[i][j]=result[i-1][j]+result[i][j];		//get absolutes	
 			}
+		}
+		
+		if (excep!=null)
+		{
+			excep.setDataInts(result);
+			throw excep; 
 		}
 		
 		return result;
 	}
 
-	private static int[][] decodeDifs(String difs) {
+	private static int[][] decodeDifs(String difs, int [][] result) throws DecodeException {
 		String s = smsToBin(difs.toCharArray(), CBITS);
-		return huffBinToDifs(s);
+		return huffBinToDifs(s,result);
 		
 	}
 
-	private static int[][] huffBinToDifs(String s) {
-		int[][] result = new int[MEASURECOUNT-1][SENSORCOUNT];
+	private static int[][] huffBinToDifs(String s, int [][] result) throws DecodeException
+	{
 		int length= SENSORCOUNT*(MEASURECOUNT-1);
 		int dpos=0;
-		int rowCount=0;
+		int rowCount=2;		//start inserting in first dif-row
 		int columnCount=0;
+		boolean recoverException=false;
+		int errorCount=0;
+		
 		while(dpos<s.length()) {
 			int count=1;
 			while (true)
@@ -65,15 +84,21 @@ public abstract class DataCompression {
 				if (code == Integer.MIN_VALUE)	//case: not found
 				{
 					count++;
+					if(code+count == s.length()) {
+						throw new DecodeFatalException("could not detect char till end, exceeded string-length");
+					}
 					continue;
 				} else if (code == 1001) {
-					result[rowCount][columnCount]=Integer.valueOf(s.substring(dpos+count, dpos+count+8));
+					code=Integer.valueOf(s.substring(dpos+count, dpos+count+8));
 				} else if (code == Integer.MAX_VALUE)	//error-case
 				{
-					result[rowCount][columnCount]=0;	//for now, assume no difference
-				} else {
-					result[rowCount][columnCount]=code;
+					code=0;	//for now, assume no difference
+					recoverException=true;
+					errorCount++;
 				}
+				if (rowCount == MEASURECOUNT+1) {		//protects from result-ArrayOutOfBounce
+					throw new DecodeRecoverException("Decode-stream to long. Cutting of end.",result);
+				} else 	result[rowCount][columnCount]=code;
 				
 				
 				break;
@@ -89,7 +114,9 @@ public abstract class DataCompression {
 		}
 		
 		
-		
+		if (recoverException) {
+			throw new DecodeRecoverException("Decode-stream contains" +Integer.toString(errorCount)+ "errors. Assuming zero difs.",result);
+		}
 		return result;
 	}
 
