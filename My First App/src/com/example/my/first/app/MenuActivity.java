@@ -1,5 +1,6 @@
 package com.example.my.first.app;
 
+import android.R.bool;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
@@ -9,6 +10,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -41,11 +44,36 @@ public class MenuActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.menu);
-		ListView list = (ListView) findViewById(R.id.listView1);
+		final ListView list = (ListView) findViewById(R.id.listView1);
 		if (getSms(this) > 0) {
 			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_list_item_1, adapterFill);
+					android.R.layout.simple_list_item_multiple_choice, adapterFill);
 			list.setAdapter(adapter);
+		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+		    
+		    list.setOnItemClickListener(new OnItemClickListener() {
+		    	
+		    	  public void onItemClick(AdapterView<?> parent, View view,
+		    	    int position, long id) {
+		    		  
+		    		  long [] checked=list.getCheckedItemIds();
+		    		  Context cx = getApplicationContext();
+		    		  StringBuilder sb = new StringBuilder();
+		    		  for (int i=0;i<checked.length;i++)
+		    		  {
+		    			  sb.append(Long.toString(checked[i]));
+		    			  sb.append("   ");
+		    		  }
+		    		  Toast toast = Toast.makeText(cx, sb.toString(), Toast.LENGTH_SHORT);
+		    		  toast.show();
+		    	  }
+		    	
+		    	
+		    	
+		    	
+		    	
+		    	
+			});
 			saveSms();
 		}
 
@@ -139,13 +167,13 @@ public class MenuActivity extends Activity {
 				neu = storage.addNewDataSet(DataCompression.decode(data[i]), 
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeFatalException e) {
-				//Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				//toast.show();
+				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				toast.show();
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-				//Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				//toast.show();
+				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
+				toast.show();
 				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeException e) {			//unreachable}
