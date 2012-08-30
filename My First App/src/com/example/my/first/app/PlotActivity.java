@@ -2,6 +2,7 @@ package com.example.my.first.app;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -19,10 +20,12 @@ import android.view.View.OnTouchListener;
 import android.widget.TextView;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.example.sensor.data.DataSet;
 import com.example.sensor.data.DataStorage;
 
 public class PlotActivity extends Activity implements OnTouchListener {
@@ -32,6 +35,7 @@ public class PlotActivity extends Activity implements OnTouchListener {
 	
 	private XYPlot temperatureSimpleXYPlot;
 	private XYPlot moistureSimpleXYPlot;
+	private DataStorage storage;
 	private TextView txt1;
 	private TextView txt2;
 	private TextView txt3;
@@ -39,7 +43,6 @@ public class PlotActivity extends Activity implements OnTouchListener {
 	private Integer[] column;
 	private PointF minXY;
 	private PointF maxXY;
-	private DataStorage data;
 	private float ABS_Y_MIN;
 	private float ABS_Y_MAX;
 	private float MAX_Y_DISTANCE;
@@ -52,8 +55,11 @@ public class PlotActivity extends Activity implements OnTouchListener {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		Bundle extras =getIntent().getExtras();
+		storage = extras.getParcelable("storage");
+		ArrayList<Integer> selected=extras.getIntegerArrayList("selected");
+		
 		setContentView(R.layout.plot);
-		data = new DataStorage();
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
 		txt1 = (TextView)findViewById(R.id.txtview1);
 		txt2 = (TextView)findViewById(R.id.txtview2);
@@ -77,11 +83,12 @@ public class PlotActivity extends Activity implements OnTouchListener {
 		moistureSimpleXYPlot.disableAllMarkup();
 
 		
+//		for (Integer k:selected) {}
+		Integer k=0;
+		DataSet temp=storage.getDatabyLocalId(k);
 		
-		
-
-	/**	for (int j = 0; j < 4; j++) {	
-			Integer[] column = data.getData().getTempData(j);
+		for (int j = 0; j < 4; j++) {	
+			Integer[] column = temp.getTempData(j);
 			//Integer[] column= {1,7,23,5,9,12,3};			//for debug
 			
 			XYSeries series1 = new SimpleXYSeries(Arrays.asList(column),

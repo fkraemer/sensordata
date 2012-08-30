@@ -4,20 +4,31 @@ import android.annotation.TargetApi;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.io.Serializable;
+import		java.io.Serializable;
 import      java.text.SimpleDateFormat;
 import 		java.util.ArrayList;
 import 		java.util.Arrays;
 import		java.util.Calendar;
+import 		java.util.Date;
 
 
 
 public class DataStorage implements Parcelable {
 
 	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
-	private int[][] raw;
-	private DataSet debug;
 	
+	public static final Parcelable.Creator CREATOR =
+			new Parcelable.Creator() {
+			    public DataStorage createFromParcel(Parcel in) {
+			        return new DataStorage(in);
+			    }
+
+			    public DataStorage[] newArray(int size) {
+			        return new DataStorage[size];
+			    }
+			};
+
+
 	public DataStorage()
 	{
 		/**	raw =new int[][] { { 30, 93, 99, 86, 140, 155, 160, 135, 56 },
@@ -48,6 +59,10 @@ public class DataStorage implements Parcelable {
 		
 	}
 	
+	public DataStorage(Parcel in) {
+		readFromParcel(in);
+	}
+
 	@TargetApi(9)
 	public DataSet addNewDataSet(int[][] result, long id)
 	{
@@ -90,17 +105,15 @@ public class DataStorage implements Parcelable {
 		return storage.size();
 	}
 
-	@Override
 	public int describeContents() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	@Override
 	public void writeToParcel(Parcel dest, int flags) {
-		for (DataSet s: storage)
-		{
-			dest.writeIntArray(val)
-		}
+		dest.writeTypedList(storage);
+	}
+
+	private void readFromParcel(Parcel in) {
+		storage=in.createTypedArrayList(DataSet.CREATOR);
 	}
 }

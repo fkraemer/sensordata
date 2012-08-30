@@ -5,6 +5,7 @@ import		java.util.Arrays;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.view.View.MeasureSpec;
 
 public class DataSet implements Parcelable{
 	
@@ -13,32 +14,37 @@ public class DataSet implements Parcelable{
 private Date date;
 private int localId;	//necessary for handling by android-app
 private long id;
-private Integer[][] data;
+private int[][] data;
+
+public static final Parcelable.Creator CREATOR =
+new Parcelable.Creator() {
+    public DataSet createFromParcel(Parcel in) {
+        return new DataSet(in);
+    }
+
+    public DataSet[] newArray(int size) {
+        return new DataSet[size];
+    }
+};
 
 	
 //extract the data for each sensor from decoded c-code, form one array per sensor
 	public DataSet(int[][] data, long date, long id, int localId)
 	{	
-		int rowCount = data.length;		//Count of Measurements stays flexible
-		int columnCount = 9;	//fixed to 9 different SensorDataSets
-		this.data = new Integer[columnCount][rowCount];  
+		this.data = data;//new Integer[columnCount][rowCount];  
 		this.date= new Date(date);
 		this.id=id;
 		this.localId=localId;
 		
-		for (int j = 0; j < columnCount; j++) {		//copy columns into data.rows
-			Integer[] column = new Integer[rowCount];
-			for (int i=0; i < rowCount; i++) {
-				try {
-				this.data[j][i] = new Integer(data[i][j]);
-				} catch (NullPointerException e) {		//evntl NullPointer fangen
-					e.printStackTrace();				//implement logging ?
-				}	
-			}
-		}
+		
 	}
 	
 	
+	public DataSet(Parcel in) {
+		readFromParcel(in);
+	}
+
+
 	@Override
 	public String toString() {
 		//set different time format here or on construct
@@ -72,34 +78,69 @@ private Integer[][] data;
 		this.id = id;
 	}
 	
-	public Integer[] getTempData(int i)
+	public Integer[] getTempData(int k)
 	{
-	if (i<4 && i>=0) {
-		return data[i];		
-	}
-	return null;
+		Integer[] result = new Integer[data.length-1];
+		if (k<4 && k>=0) {		
+			//return Integer array
+			for (int i=1; i < data.length; i++) {
+				try {
+				result[i-1] = new Integer(data[i][k]);
+				} catch (NullPointerException e) {		//evntl NullPointer fangen
+					e.printStackTrace();				
+				}
+			}
+		}
+		
+		return result;		
 	}
 	
-	public Integer[] getMoistData(int i)
+	public Integer[] getMoistData(int k)
 	{
-	if (i<4 && i>=0) {
-		return data[i+4];		
-	}
-	return null;
+		Integer[] result = new Integer[data.length-1];
+		if (k<4 && k>=0) {		
+			//return Integer array
+			for (int i=1; i < data.length; i++) {
+				try {
+				result[i-1] = new Integer(data[i][k+4]);
+				} catch (NullPointerException e) {		//evntl NullPointer fangen
+					e.printStackTrace();				
+				}
+			}
+		} else {
+			Arrays.fill(result, 0);		//out of range calls get back zeros
+		}
+		return result;		
 	}
 
 
-	@Override
 	public int describeContents() {
 		return 0;
 	}
 
 
-	@Override
 	public void writeToParcel(Parcel dest, int flags) {
-		int[][] copy= Arrays.cop
-		dest.writeIntArray(data);
+		dest.writeInt(data.length);
+		for (int i=0;i<data.length;i++)
+		{
+			dest.writeIntArray(data[i]);
+		}
+		dest.writeInt(localId);
+		dest.writeLong(id);
+		dest.writeLong(date.getTime());
 		
 	}
+	
+	private void readFromParcel(Parcel in) {
+		int length=in.readInt();
+		for (int i=0;i<length;i++)
+		{
+			data[i]=in.createIntArray();
+		}
+		localId=in.readInt();
+		id=in.readLong();
+		date=new Date(in.readLong());
+	}
+	
 
 }

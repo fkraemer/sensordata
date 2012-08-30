@@ -5,9 +5,9 @@ import java.util.Arrays;
 
 public abstract class DataCompression {
 
-	private final static int ANCHORLENGTH=14;
-	private final static int SENSORCOUNT=9;
-	private final static int MEASURECOUNT=24;
+	public final static int ANCHORLENGTH=14;
+	public final static int SENSORCOUNT=9;
+	public final static int MEASURECOUNT=24;
 	private final static int HUFCODEBOOKLENGTH=27;
 	private final static int CBITS = 6;
 	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
