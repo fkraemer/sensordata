@@ -1,6 +1,6 @@
 package com.example.my.first.app;
 
-import android.R.bool;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
@@ -10,10 +10,12 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.util.SparseBooleanArray;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 import android.database.Cursor;
@@ -22,10 +24,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 
 import com.example.sensor.data.DataCompression;
 import com.example.sensor.data.DataSet;
@@ -36,33 +36,35 @@ import com.example.sensor.data.DecodeRecoverException;
 
 public class MenuActivity extends Activity {
 
+	private ListView list;
 	private String[] data = new String[0];
 	private String[] numbers = new String[0];
 	private String[] adapterFill = new String[0];
 	private DataStorage storage = new DataStorage();
-	private ArrayList<Integer> selectedIds =  new ArrayList<Integer>();
 	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
 
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.menu);
-		final ListView list = (ListView) findViewById(R.id.listView1);
+	//	LayoutInflater inflater = getLayoutInflater();
+	//	LinearLayout listFooterView= (LinearLayout) inflater.inflate(R.layout.footer_layout, null);
+		
+
+		//TODO Progressbar with another thread
+		list = (ListView) findViewById(R.id.listView1);
+		//list.addFooterView(listFooterView);
 		if (getSms(this) > 0) {
 			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 					android.R.layout.simple_list_item_multiple_choice, adapterFill);
 			list.setAdapter(adapter);
 		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 		    
-		    list.setOnItemClickListener(new OnItemClickListener() {
+		  /**  list.setOnItemClickListener(new OnItemClickListener() {
 		    	
 		    	  public void onItemClick(AdapterView<?> parent, View view,
 		    	    int position, long id) {
 		    		  
-		    		  SparseBooleanArray checked = list.getCheckedItemPositions();
-		    		  for (int i=0;i<checked.size();i++)
-		    		  {
-		    			  if (checked.valueAt(i))  selectedIds.add(i);
-		    		  }
+		    		
 		    		  StringBuilder sb = new StringBuilder();
 		    		  for (int i=0;i<selectedIds.size();i++)
 		    		  {
@@ -79,7 +81,7 @@ public class MenuActivity extends Activity {
 		    	
 		    	
 		    	
-			});
+			});*/
 			saveSms();
 		}
 
@@ -199,6 +201,16 @@ public class MenuActivity extends Activity {
 	}
 
 	public void plotPlots(View view) {
+		ArrayList<Integer> selectedIds =  new ArrayList<Integer>();
+		SparseBooleanArray checked = list.getCheckedItemPositions();
+		for (int i=0;i<checked.size();i++)
+		  {
+			  if (checked.keyAt(i)!=0)  
+				  {
+				  int sel =checked.keyAt(i);
+				  if (!selectedIds.contains(sel)) selectedIds.add(sel);
+				  }
+		  }
 		Intent myIntent = new Intent(this, PlotActivity.class);
 		myIntent.putExtra("storage", storage);
 		myIntent.putIntegerArrayListExtra("selected", selectedIds);

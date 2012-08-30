@@ -3,7 +3,10 @@ package com.example.sensor.data;
 import 	   java.util.Date;
 import		java.util.Arrays;
 
-public class DataSet {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class DataSet implements Parcelable{
 	
 
 //TODO constants
@@ -83,6 +86,20 @@ private Integer[][] data;
 		return data[i+4];		
 	}
 	return null;
+	}
+
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		int[][] copy= Arrays.cop
+		dest.writeIntArray(data);
+		
 	}
 
 }

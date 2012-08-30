@@ -1,6 +1,8 @@
 package com.example.sensor.data;
 
 import android.annotation.TargetApi;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.io.Serializable;
 import      java.text.SimpleDateFormat;
@@ -10,7 +12,7 @@ import		java.util.Calendar;
 
 
 
-public class DataStorage implements Serializable{
+public class DataStorage implements Parcelable {
 
 	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
 	private int[][] raw;
@@ -86,5 +88,19 @@ public class DataStorage implements Serializable{
 	public int size()
 	{
 		return storage.size();
+	}
+
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		for (DataSet s: storage)
+		{
+			dest.writeIntArray(val)
+		}
 	}
 }
