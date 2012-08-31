@@ -3,12 +3,6 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent" >
       
-        <Button android:id="@+id/plot"
-        android:layout_height="wrap_content"
-    	android:layout_width="match_parent"
-        android:text="@string/button_plot"
-        android:onClick="plotPlots" 
-        android:layout_alignParentTop="true"/>  
     
     <ListView
         android:id="@+id/listView1"
@@ -18,6 +12,12 @@
         android:layout_alignParentBottom="true"/>
     
     
+        <Button android:id="@+id/plot"
+        android:layout_height="wrap_content"
+    	android:layout_width="match_parent"
+        android:text="@string/button_plot"
+        android:onClick="plotPlots" 
+        android:layout_alignParentTop="true"/>  
 
 
     

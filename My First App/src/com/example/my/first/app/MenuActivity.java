@@ -175,13 +175,12 @@ public class MenuActivity extends Activity {
 				neu = storage.addNewDataSet(DataCompression.decode(data[i]), 
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeFatalException e) {
-				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				toast.show();
+				Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-				Toast toast = Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT);
-				toast.show();
+				Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT).show();
+				
 				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeException e) {			//unreachable}
@@ -204,17 +203,16 @@ public class MenuActivity extends Activity {
 		ArrayList<Integer> selectedIds =  new ArrayList<Integer>();
 		SparseBooleanArray checked = list.getCheckedItemPositions();
 		for (int i=0;i<checked.size();i++)
-		  {
-			  if (checked.keyAt(i)!=0)  
-				  {
-				  int sel =checked.keyAt(i);
-				  if (!selectedIds.contains(sel)) selectedIds.add(sel);
-				  }
-		  }
-		Intent myIntent = new Intent(this, PlotActivity.class);
-		myIntent.putExtra("storage", storage);
-		myIntent.putIntegerArrayListExtra("selected", selectedIds);
-		startActivity(myIntent);
+		{
+			  if (checked.valueAt(i)) selectedIds.add(checked.keyAt(i));
+		}
+		if (selectedIds.size()>0) {
+			Intent myIntent = new Intent(this, PlotActivity.class);
+			myIntent.putExtra("storage", storage);
+			myIntent.putIntegerArrayListExtra("selected", selectedIds);
+			startActivity(myIntent);
+		} else {
+			Toast.makeText(getApplicationContext(), "No data selected!", Toast.LENGTH_LONG).show();
+		}
 	}
-
 }

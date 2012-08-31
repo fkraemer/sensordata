@@ -66,10 +66,21 @@ public class DataStorage implements Parcelable {
 	@TargetApi(9)
 	public DataSet addNewDataSet(int[][] result, long id)
 	{
+		float[][] data= new float[result.length][result[1].length];
+		for (int i=1; i < result.length; i++) {
+			for (int j=1; j < result[1].length; j++) {
+			try {
+				data[i][j] = (float) result [i][j] / 10;		//IMPORTANT devide int input by 10
+			} catch (NullPointerException e) {		//evntl NullPointer fangen (1st ln)
+				e.printStackTrace();				
+			}
+		}
+		}
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
 		c.set(result[0][0]+2000, result[0][1]-1, result[0][2], result[0][3], result[0][4]);
 		int localId =storage.size();	//Position, where DataSet will be placed 
-		DataSet element=new DataSet(Arrays.copyOfRange(result, 1, result.length), c.getTimeInMillis(), id, localId);
+		DataSet element=new DataSet(data, 
+				c.getTimeInMillis(), id, localId,30); //30min offset by default
 		storage.add(element);
 		
 		return element;

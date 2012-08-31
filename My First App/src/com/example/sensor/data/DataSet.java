@@ -1,10 +1,12 @@
 package com.example.sensor.data;
 
+import java.util.Calendar;
 import 	   java.util.Date;
 import		java.util.Arrays;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.format.Time;
 import android.view.View.MeasureSpec;
 
 public class DataSet implements Parcelable{
@@ -12,9 +14,10 @@ public class DataSet implements Parcelable{
 
 //TODO constants
 private Date date;
+private Time timeOffset=new Time();
 private int localId;	//necessary for handling by android-app
 private long id;
-private int[][] data;
+private float[][] data;
 
 public static final Parcelable.Creator CREATOR =
 new Parcelable.Creator() {
@@ -29,14 +32,14 @@ new Parcelable.Creator() {
 
 	
 //extract the data for each sensor from decoded c-code, form one array per sensor
-	public DataSet(int[][] data, long date, long id, int localId)
-	{	
-		this.data = data;//new Integer[columnCount][rowCount];  
+	public DataSet(float[][] data, long date, long id, int localId, int timeOffset)
+	{
+		this.data =data;
+		
 		this.date= new Date(date);
 		this.id=id;
 		this.localId=localId;
-		
-		
+		this.timeOffset.set(timeOffset*60000);	//convert minutes to milis
 	}
 	
 	
@@ -55,6 +58,12 @@ new Parcelable.Creator() {
 	public int getLocalId() {
 		return localId;
 	}
+
+
+	public Time getTimeOffset() {
+		return timeOffset;
+	}
+
 
 
 	public void setLocalId(int localId) {
@@ -78,14 +87,14 @@ new Parcelable.Creator() {
 		this.id = id;
 	}
 	
-	public Integer[] getTempData(int k)
+	public Float[] getTempData(int k)
 	{
-		Integer[] result = new Integer[data.length-1];
+		Float[] result = new Float[data.length-1];
 		if (k<4 && k>=0) {		
-			//return Integer array
+			//return float array, first row contains timestamp
 			for (int i=1; i < data.length; i++) {
 				try {
-				result[i-1] = new Integer(data[i][k]);
+				result[i-1] =new Float( data[i][k+4]);
 				} catch (NullPointerException e) {		//evntl NullPointer fangen
 					e.printStackTrace();				
 				}
@@ -95,14 +104,14 @@ new Parcelable.Creator() {
 		return result;		
 	}
 	
-	public Integer[] getMoistData(int k)
+	public Float[] getMoistData(int k)
 	{
-		Integer[] result = new Integer[data.length-1];
+		Float[] result = new Float[data.length-1];
 		if (k<4 && k>=0) {		
-			//return Integer array
+			//return float array, first row contains timestamp
 			for (int i=1; i < data.length; i++) {
 				try {
-				result[i-1] = new Integer(data[i][k+4]);
+				result[i-1] =new Float( data[i][k]);
 				} catch (NullPointerException e) {		//evntl NullPointer fangen
 					e.printStackTrace();				
 				}
@@ -120,26 +129,31 @@ new Parcelable.Creator() {
 
 
 	public void writeToParcel(Parcel dest, int flags) {
-		dest.writeInt(data.length);
+		dest.writeInt(data.length);			//saving array dimensions
+		dest.writeInt(data[1].length);
 		for (int i=0;i<data.length;i++)
 		{
-			dest.writeIntArray(data[i]);
+			dest.writeFloatArray(data[i]);
 		}
 		dest.writeInt(localId);
 		dest.writeLong(id);
 		dest.writeLong(date.getTime());
+		dest.writeLong(timeOffset.toMillis(true));
+		
 		
 	}
 	
 	private void readFromParcel(Parcel in) {
 		int length=in.readInt();
+		data=new float[length][in.readInt()];
 		for (int i=0;i<length;i++)
 		{
-			data[i]=in.createIntArray();
+			data[i]=in.createFloatArray();
 		}
 		localId=in.readInt();
 		id=in.readLong();
 		date=new Date(in.readLong());
+		timeOffset.set(in.readLong());
 	}
 	
 

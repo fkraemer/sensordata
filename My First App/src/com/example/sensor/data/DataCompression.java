@@ -1,5 +1,6 @@
 package com.example.sensor.data;
 
+import android.annotation.TargetApi;
 import java.util.Arrays;
 
 
@@ -26,6 +27,7 @@ public abstract class DataCompression {
 	 * @param s: input is rachel-huffman decoded sensordata/sms-message
 	 * @return: [number of measures + 1][number of sensors], where the first row [0][1-5] provides the timestamp YY-MM-DD-HH-MM 
 	 */
+	@TargetApi(9)
 	public static int[][] decode(String s) throws DecodeException
 	{		
 		int[][] result = new int[MEASURECOUNT+1][SENSORCOUNT];
@@ -90,8 +92,9 @@ public abstract class DataCompression {
 					}
 					continue;
 				} else if (code == 1001) {
-					code=Integer.valueOf(s.substring(dpos+count, dpos+count+8));
-				} else if (code == Integer.MAX_VALUE)	//error-case
+					code=Integer.valueOf(s.substring(dpos+count+1, dpos+count+11),2);
+					code*=(s.charAt(dpos+count) == '1') ? -1 : 1;
+				} else if (code == 1002)	//error-case
 				{
 					code=0;	//for now, assume no difference
 					recoverException=true;
@@ -116,7 +119,7 @@ public abstract class DataCompression {
 		
 		
 		if (recoverException) {
-			throw new DecodeRecoverException("Decode-stream contains" +Integer.toString(errorCount)+ "errors. Assuming zero difs.",result);
+			throw new DecodeRecoverException("Decode-stream contains" +Integer.toString(errorCount)+ " errors. Assuming zero difs.",result);
 		}
 		return result;
 	}
