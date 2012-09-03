@@ -14,7 +14,7 @@ public class DataSet implements Parcelable{
 
 //TODO constants
 private Date date;
-private Time timeOffset=new Time();
+private Date timeOffset;
 private int localId;	//necessary for handling by android-app
 private long id;
 private float[][] data;
@@ -39,7 +39,7 @@ new Parcelable.Creator() {
 		this.date= new Date(date);
 		this.id=id;
 		this.localId=localId;
-		this.timeOffset.set(timeOffset*60000);	//convert minutes to milis
+		this.timeOffset = new Date(timeOffset*60000);	//convert minutes to milis
 	}
 	
 	
@@ -53,14 +53,12 @@ new Parcelable.Creator() {
 		//set different time format here or on construct
 		return Integer.toString(localId)+")  from  +"+Long.toString(id)+"   "+ date.toString();
 	}
-
-
 	public int getLocalId() {
 		return localId;
 	}
 
 
-	public Time getTimeOffset() {
+	public Date getTimeOffset() {
 		return timeOffset;
 	}
 
@@ -138,7 +136,7 @@ new Parcelable.Creator() {
 		dest.writeInt(localId);
 		dest.writeLong(id);
 		dest.writeLong(date.getTime());
-		dest.writeLong(timeOffset.toMillis(true));
+		dest.writeLong(timeOffset.getTime());
 		
 		
 	}
@@ -153,7 +151,7 @@ new Parcelable.Creator() {
 		localId=in.readInt();
 		id=in.readLong();
 		date=new Date(in.readLong());
-		timeOffset.set(in.readLong());
+		timeOffset= new Date(in.readLong());
 	}
 	
 

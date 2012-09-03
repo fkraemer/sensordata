@@ -72,9 +72,9 @@ public class plotTouch implements OnTouchListener {
 
 	
 	public boolean onTouch(View arg0, MotionEvent event) {
-		double valY = ValPixConverter.pixToVal(event.getY(0), minXY.y, maxXY.y, plot.getHeight(), true);
-		double valX = ValPixConverter.pixToVal(event.getX(0), minXY.x, maxXY.x, plot.getWidth(), false);
-		if (!(valX<maxXY.x && valX>minXY.x && valY<maxXY.y && valY>minXY.y)) return false;
+		//double valY = ValPixConverter.pixToVal(event.getY(0), minXY.y, maxXY.y, plot.getHeight(), true);
+		//double valX = ValPixConverter.pixToVal(event.getX(0), minXY.x, maxXY.x, plot.getWidth(), false);
+		//if (!(valX<maxXY.x && valX>minXY.x && valY<maxXY.y && valY>minXY.y)) return false;
 				
 		
 		
@@ -176,6 +176,8 @@ public class plotTouch implements OnTouchListener {
 		float offset = panX * step;
 		
 		float[] k=forceBorders(minXY.x, maxXY.x, minXY.x+offset, maxXY.x+offset, Direction.X);
+		
+		plot.setUserDomainOrigin((plot.getDomainOrigin()).longValue() + k[0] - minXY.x);
 		minXY.x=k[0];
 	    maxXY.x=k[1];
 	    
@@ -186,6 +188,7 @@ public class plotTouch implements OnTouchListener {
 		k=forceBorders(minXY.y, maxXY.y, minXY.y+offset, maxXY.y+offset, Direction.Y);
 		minXY.y=k[0];
 	    maxXY.y=k[1];
+		plot.setUserRangeOrigin(( plot.getRangeOrigin().longValue()) + ((Float)(k[0]-minXY.y)).longValue() );
 
 		setBoundaries();
 		
@@ -196,9 +199,9 @@ public class plotTouch implements OnTouchListener {
 	{
 		if (event.getPointerCount() > 1) 		//make sure there are 2touches, otherwise exceptions
 		{
-		float x = event.getX(0) - event.getX(1);
-		float y = event.getY(0) - event.getY(1);
-		return FloatMath.sqrt(x * x + y * y);
+			float x = event.getX(0) - event.getX(1);
+			float y = event.getY(0) - event.getY(1);
+			return FloatMath.sqrt(x * x + y * y);
 		}
 		return 0;
 	}
@@ -218,8 +221,6 @@ public class plotTouch implements OnTouchListener {
 	{
 		plot.setDomainBoundaries(minXY.x, maxXY.x, BoundaryMode.FIXED);
 		plot.setRangeBoundaries(minXY.y, maxXY.y, BoundaryMode.FIXED);
-		//txt3.setText("X: "+String.valueOf(minXY.x) + "  - "+String.valueOf(maxXY.x)+
-		//		"Y: "+String.valueOf(minXY.y) + "  - "+String.valueOf(maxXY.y));
 	}
 	
 	private  float[] forceBorders(float oldMin, float oldMax, float newMin, float newMax, Direction dir) {
