@@ -189,7 +189,7 @@ public class MenuActivity extends Activity {
 		
 		}
 		
-		//filling adapter with successfull decoded datasets
+		//filling adapter with successfull d0ecoded datasets
 		adapterFill = new String[storage.size()];		//TODO change to ArrayList, if adding service checking for new SMS
 		for (int i=0; i<storage.size(); i++)
 		{
@@ -200,16 +200,15 @@ public class MenuActivity extends Activity {
 	}
 
 	public void plotPlots(View view) {
-		ArrayList<Integer> selectedIds =  new ArrayList<Integer>();
+		ArrayList<DataSet> selected =  new ArrayList<DataSet>();
 		SparseBooleanArray checked = list.getCheckedItemPositions();
-		for (int i=0;i<checked.size();i++)
+		for (int i=checked.size();i>=0;i--)
 		{
-			  if (checked.valueAt(i)) selectedIds.add(checked.keyAt(i));
+			  if (checked.valueAt(i)) selected.add(storage.getDatabyLocalId(checked.keyAt(i)));
 		}
-		if (selectedIds.size()>0) {
+		if (selected.size()>0) {
 			Intent myIntent = new Intent(this, PlotActivity.class);
-			myIntent.putExtra("storage", storage);
-			myIntent.putIntegerArrayListExtra("selected", selectedIds);
+			myIntent.putParcelableArrayListExtra("selected", selected);
 			startActivity(myIntent);
 		} else {
 			Toast.makeText(getApplicationContext(), "No data selected!", Toast.LENGTH_LONG).show();

@@ -48,7 +48,6 @@ public class PlotActivity extends Activity {
 
 	private XYPlot temperatureSimpleXYPlot;
 	private XYPlot moistureSimpleXYPlot;
-	private DataStorage storage;
 	private TextView txt1;
 	private TextView txt2;
 	private TextView txt3;
@@ -62,9 +61,8 @@ public class PlotActivity extends Activity {
 		super.onCreate(savedInstanceState);
 
 		Bundle extras =getIntent().getExtras();
-		storage = extras.getParcelable("storage");
-		ArrayList<Integer> selected=extras.getIntegerArrayList("selected");
-		Collections.sort(selected);		//the most recent messages have the lower index
+		ArrayList<DataSet> selected=extras.getParcelableArrayList("selected");
+		//TODO make sure right order: the most recent messages have the lower index
 
 		setContentView(R.layout.plot);
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
@@ -122,58 +120,57 @@ public class PlotActivity extends Activity {
 
 
 
+		float timeOffset = selected.get(0).getTimeOffset().getTime();	//set fixed time offset
+		float timeStamp = selected.get(0).getDate().getTime();
+		for (int k=0;k<selected.size();k++){
+			DataSet data = selected.get(k);
 
+			for (int j = 0; j < 4; j++) {
 
-		//		for (Integer k:selected) {}
-		Integer k=selected.get(0);
-		DataSet data=storage.getDatabyLocalId(k);
+				Float[] tempColumn = data.getTempData(j);
+				Float[] moistColumn = data.getMoistData(j);
+				Float[] timeColumn = new Float[tempColumn.length];
+				// generating timestamps
+				for (int i = 0; i < tempColumn.length; i++) {
+					timeColumn[i] = timeStamp + timeOffset * i + k * timeOffset * 24;	//TODO dont hardcode measure count or change to  individual timeStamps
+				}
 
+				XYSeries tempSeries = new SimpleXYSeries(
+						Arrays.asList(timeColumn), Arrays.asList(tempColumn),
+						"Temperature Series");
+				XYSeries moistSeries = new SimpleXYSeries(
+						Arrays.asList(timeColumn), Arrays.asList(moistColumn),
+						"Moisture Series");
 
-		for (int j = 0; j < 4; j++) {	
-			Float[] tempColumn = data.getTempData(j);
-			Float[] moistColumn = data.getMoistData(j);
-			Long[] timeColumn = new Long[tempColumn.length];
-			long timeStamp=data.getDate().getTime();
-			long timeOffset=data.getTimeOffset().getTime();
-			//generating timestamps
-			for (int i=0;i<tempColumn.length;i++){
-				timeColumn[i]=timeStamp+timeOffset*i;
+				int colour = 0;
+				switch (j) {
+				case 0:
+					colour = Color.WHITE;
+					break;
+				case 1:
+					colour = Color.GRAY;
+					break;
+				case 2:
+					colour = Color.RED;
+					break;
+				case 3:
+					colour = Color.CYAN;
+					break;
+				}
+
+				LineAndPointFormatter series1Format = new LineAndPointFormatter(
+						Color.GREEN, // line
+						colour, // point color
+						null); // fill Color
+				Paint paint = series1Format.getLinePaint();
+				paint.setStrokeWidth(3);
+				series1Format.setLinePaint(paint);
+
+				temperatureSimpleXYPlot.addSeries(tempSeries, series1Format);
+				moistureSimpleXYPlot.addSeries(moistSeries, series1Format);
 			}
 
-			XYSeries tempSeries = new SimpleXYSeries(Arrays.asList(timeColumn),Arrays.asList(tempColumn),
-					"Temperature Series");
-			XYSeries moistSeries = new SimpleXYSeries( Arrays.asList(timeColumn), Arrays.asList(moistColumn),
-					"Moisture Series");
-
-			int colour = 0;
-			switch (j) {
-			case 0:
-				colour = Color.WHITE;
-				break;
-			case 1:
-				colour = Color.GRAY;
-				break;
-			case 2:
-				colour = Color.RED;
-				break;
-			case 3:
-				colour = Color.CYAN;
-				break;
-			}
-
-			LineAndPointFormatter series1Format = new LineAndPointFormatter(
-					Color.GREEN, // line
-					colour, // point color
-					null); // fill Color
-			Paint paint = series1Format.getLinePaint();
-			paint.setStrokeWidth(3);
-			series1Format.setLinePaint(paint);
-
-			temperatureSimpleXYPlot.addSeries(tempSeries, series1Format);
-			moistureSimpleXYPlot.addSeries(moistSeries, series1Format);
 		}
-
-
 		float ABS_Y_MIN;
 		float ABS_Y_MAX;
 		float MAX_Y_DISTANCE;
@@ -221,7 +218,7 @@ public class PlotActivity extends Activity {
 
 		
 		//prepare: draw 24h lines (every midnight)
-		Long[] midnights = lookForMidnight(storage.getDatabyLocalId(0).getDate(),storage.getDatabyLocalId(0).getTimeOffset() ,storage.size());
+		Long[] midnights = lookForMidnight(selected.get(0).getDate(),selected.get(0).getTimeOffset().getTime() ,selected.size());
 		//filling plots with midnight borders
 		for (int i=0;i<midnights.length;i++)
 		{
@@ -253,23 +250,22 @@ public class PlotActivity extends Activity {
 		moistureSimpleXYPlot.setOnTouchListener(moistTouch);
 	}
 
-	private Long[] lookForMidnight(Date date, Date date2, int size) {
-		long timeMax = date.getTime();
-		long timeMin = timeMax - date2.getTime() * size * 24; // TODO dont hardcode nr	of measures
-		timeMax += date2.getTime() * 24;
-
-		// compute number of days
+	private Long[] lookForMidnight(Date date, long offset, int size) {
+		long timeMin = date.getTime();
+		long timeMax = timeMin + offset * size * 24; // TODO dont hardcode nr	of measures
+		
+		// compute number of days:
 		int difDays = (int) (timeMax - timeMin) / (24 * 60 * 60 * 1000);
 		Long[] result = new Long[difDays+1];
 		for (int i = 0; i < difDays+1; i++) {
 			Calendar c = Calendar.getInstance();
 			Date process = new Date(timeMin + i * 24 * 60 * 60 * 1000);
 			c.setTime(process);
-			long possibleMidnight = new Long(process.getTime() - c.get(Calendar.HOUR_OF_DAY) * 60
-					* 60 * 1000 - c.get(Calendar.MINUTE) * 60 * 1000); // accuracy of minutes is enough
+			c.set(Calendar.HOUR_OF_DAY, 0);
+			c.set(Calendar.MINUTE, 0);// accuracy of one minute is enough
+			long possibleMidnight = c.getTimeInMillis();
 			if (possibleMidnight<timeMax) result[i]=possibleMidnight;
 		}
-		if (result[difDays]>0) result = Arrays.copyOfRange(result, 0, difDays); 	//cut last one if no midnight found
 		return result;
 	}
 

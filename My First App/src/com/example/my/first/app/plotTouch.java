@@ -177,7 +177,7 @@ public class plotTouch implements OnTouchListener {
 		
 		float[] k=forceBorders(minXY.x, maxXY.x, minXY.x+offset, maxXY.x+offset, Direction.X);
 		
-		plot.setUserDomainOrigin((plot.getDomainOrigin()).longValue() + k[0] - minXY.x);
+		plot.setUserDomainOrigin((plot.getDomainOrigin()).floatValue() + k[0] - minXY.x);
 		minXY.x=k[0];
 	    maxXY.x=k[1];
 	    
