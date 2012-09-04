@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.LabeledIntent;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -11,6 +12,8 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 
 import com.androidplot.series.XYSeries;
+import com.androidplot.ui.SizeMetrics;
+import com.androidplot.ui.widget.TitleWidget;
 import com.androidplot.util.ValPixConverter;
 import com.androidplot.xy.*;
 
@@ -77,7 +80,7 @@ public class PlotActivity extends Activity {
 		Format timeFormat =new Format() {
 
 			// create a simple date format that draws on the hours
-			private SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+			SimpleDateFormat dateFormat = new SimpleDateFormat("HH");
 
 			public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
 
@@ -94,11 +97,13 @@ public class PlotActivity extends Activity {
 
 		};
 
+		
 		temperatureSimpleXYPlot.getGraphWidget().setTicksPerRangeLabel(1);
 		temperatureSimpleXYPlot.getGraphWidget().setTicksPerDomainLabel(1);
 		temperatureSimpleXYPlot.getGraphWidget().setRangeValueFormat(
 				new DecimalFormat("###.#"));
 		temperatureSimpleXYPlot.getGraphWidget().setDomainValueFormat(timeFormat);
+		temperatureSimpleXYPlot.getTitleWidget().setWidth(300f);
 		temperatureSimpleXYPlot.setRangeLabel("Temperature");
 		temperatureSimpleXYPlot.setDomainLabel("Time");
 		temperatureSimpleXYPlot.disableAllMarkup();
@@ -113,10 +118,10 @@ public class PlotActivity extends Activity {
 		moistureSimpleXYPlot.getGraphWidget().setRangeValueFormat(
 				new DecimalFormat("###.#"));
 		moistureSimpleXYPlot.getGraphWidget().setDomainValueFormat(timeFormat);
+		temperatureSimpleXYPlot.getTitleWidget().setWidth(300f);
 		moistureSimpleXYPlot.setRangeLabel("Moisture");
 		moistureSimpleXYPlot.setDomainLabel("Time");
 		moistureSimpleXYPlot.disableAllMarkup();
-
 
 
 
@@ -217,16 +222,22 @@ public class PlotActivity extends Activity {
 		moistureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
 
 		
-		//prepare: draw 24h lines (every midnight)
-		Long[] midnights = lookForMidnight(selected.get(0).getDate(),selected.get(0).getTimeOffset().getTime() ,selected.size());
-		//filling plots with midnight borders
-		for (int i=0;i<midnights.length;i++)
-		{
-			XYSeries midnightSeriesTemp = new SimpleXYSeries(Arrays.asList(new Long[] {midnights[i],midnights[i]}),
-					Arrays.asList(new Float[] {-55f,100f}),"");
-			XYSeries midnightSeriesMoist = new SimpleXYSeries(Arrays.asList(new Long[] {midnights[i],midnights[i]}),
-					Arrays.asList(new Float[] {-5f,1005f}),"");
+		
+		plotTouch moistTouch= new plotTouch(moistureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
+				MAX_X_DISTANCE,MIN_X_DISTANCE,MOIST_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
 
+
+		//prepare: draw 24h lines (every midnight)
+		Long[] midnights = lookForMidnight(selected.get(0).getDate(), selected
+				.get(0).getTimeOffset().getTime(), selected.size());
+		// filling plots with midnight borders
+		for (int i = 0; i < midnights.length; i++) {
+			XYSeries midnightSeriesTemp = new SimpleXYSeries(
+					Arrays.asList(new Long[] { midnights[i], midnights[i] }),
+					Arrays.asList(new Float[] { -55f, 100f }), "");
+			XYSeries midnightSeriesMoist = new SimpleXYSeries(
+					Arrays.asList(new Long[] { midnights[i], midnights[i] }),
+					Arrays.asList(new Float[] { -5f, 1005f }), "");
 
 			LineAndPointFormatter series1Format = new LineAndPointFormatter(
 					Color.RED, // line
@@ -236,13 +247,11 @@ public class PlotActivity extends Activity {
 			paint.setStrokeWidth(1);
 			series1Format.setLinePaint(paint);
 
-			temperatureSimpleXYPlot.addSeries(midnightSeriesTemp, series1Format);
+			temperatureSimpleXYPlot
+					.addSeries(midnightSeriesTemp, series1Format);
 			moistureSimpleXYPlot.addSeries(midnightSeriesMoist, series1Format);
 		}
-		plotTouch moistTouch= new plotTouch(moistureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
-				MAX_X_DISTANCE,MIN_X_DISTANCE,MOIST_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
-
-
+		
 		moistureSimpleXYPlot.redraw();
 		temperatureSimpleXYPlot.redraw();
 

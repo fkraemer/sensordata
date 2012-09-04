@@ -3,22 +3,22 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent" >
       
+    <LinearLayout    android:id="@+id/bottom_button"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_alignParentBottom="true" >
     
+
+    <Button   android:layout_height="wrap_content"
+    	android:layout_width="match_parent"
+        android:text="@string/button_plot"
+        android:onClick="plotPlots"  />  
+        </LinearLayout>
+        
     <ListView
         android:id="@+id/listView1"
         android:layout_height="fill_parent"
-        android:layout_width="fill_parent"
-        android:layout_below="@id/plot" 
-        android:layout_alignParentBottom="true"/>
-    
-    
-        <Button android:id="@+id/plot"
-        android:layout_height="wrap_content"
-    	android:layout_width="match_parent"
-        android:text="@string/button_plot"
-        android:onClick="plotPlots" 
-        android:layout_alignParentTop="true"/>  
-
-
-    
+        android:layout_width="fill_parent"	
+        android:layout_above="@id/bottom_button" />
 </RelativeLayout>
