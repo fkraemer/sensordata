@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -46,47 +47,57 @@ public class MenuActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.menu);
-	//	LayoutInflater inflater = getLayoutInflater();
-	//	LinearLayout listFooterView= (LinearLayout) inflater.inflate(R.layout.footer_layout, null);
 		
 
 		//TODO Progressbar with another thread
 		list = (ListView) findViewById(R.id.listView1);
-		//list.addFooterView(listFooterView);
 		if (getSms(this) > 0) {
 			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 					android.R.layout.simple_list_item_multiple_choice, adapterFill);
 			list.setAdapter(adapter);
 		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 		    
-		  /**  list.setOnItemClickListener(new OnItemClickListener() {
-		    	
-		    	  public void onItemClick(AdapterView<?> parent, View view,
-		    	    int position, long id) {
-		    		  
-		    		
-		    		  StringBuilder sb = new StringBuilder();
-		    		  for (int i=0;i<selectedIds.size();i++)
-		    		  {
-		    			  sb.append(Integer.toString(selectedIds.get(i)));
-		    			  sb.append("   ");
-		    		  }
-		    		  Context cx = getApplicationContext();
-		    		  Toast toast = Toast.makeText(cx, sb.toString(), Toast.LENGTH_SHORT);
-		    		  toast.show();
-		    	  }
-		    	
-		    	
-		    	
-		    	
-		    	
-		    	
-			});*/
+		
 			saveSms();
 		}
 
+		try {
+			String path = "data/data/" + getPackageName()
+					+ "/databases/sensorLocalDB";
+			File f = new File(path);
+			if (!f.exists()) {
+				copyDb(getBaseContext().getAssets().open("mydb"),
+						new FileOutputStream(path));
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			Log.e("dberror", e.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			Log.e("dberror", e.toString());
+		}
+		
+		DatabaseControl db = new DatabaseControl(this);
+		db.open();
+		
+		//TODO, go on at 11:38 in http://www.youtube.com/watch?v=IV*&qQ00M
+		//see, how to link tables to entities
+		db.close();
+		
+
 	}
 	
+	
+	private void copyDb(InputStream open, FileOutputStream fileOutputStream) throws IOException {
+		byte [] buffer = new byte[1024];
+		int length;
+		while ((length = open.read(buffer)) > 0) {
+			fileOutputStream.write(buffer, 0, length);
+		}
+		open.close();
+		fileOutputStream.close();
+	}
+
 
 	public void saveSms() {
 		boolean mExternalStorageAvailable = false;
