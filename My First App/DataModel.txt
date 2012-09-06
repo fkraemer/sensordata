@@ -13,7 +13,7 @@ CREATE  TABLE IF NOT EXISTS `platform` (
   `lat` INT NULL ,
   `long` INT NULL ,
   `elev` INT NULL ,
-  `mobile_no` MEDIUMTEXT NULL ,
+  `mobile_no` VARCHAR(45) NULL ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 
@@ -84,7 +84,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `measurement` ;
 
 CREATE  TABLE IF NOT EXISTS `measurement` (
-  `timestamp` TIMESTAMP NOT NULL ,
+  `timestamp` TIMESTAMP NOT NULSENSORL ,
   `value` DECIMAL(4,1) NULL ,
   `subsensor_id` INT NOT NULL ,
   PRIMARY KEY (`timestamp`, `subsensor_id`) ,

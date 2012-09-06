@@ -79,9 +79,6 @@ public class MenuActivity extends Activity {
 		
 		DatabaseControl db = new DatabaseControl(this);
 		db.open();
-		
-		//TODO, go on at 11:38 in http://www.youtube.com/watch?v=IV*&qQ00M
-		//see, how to link tables to entities
 		db.close();
 		
 
@@ -190,7 +187,7 @@ public class MenuActivity extends Activity {
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-				Toast.makeText(cx, e.toString(), Toast.LENGTH_SHORT).show();
+				Toast.makeText(cx, "DataSet "+i+": "+ e.toString(), Toast.LENGTH_SHORT).show();
 				
 				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
