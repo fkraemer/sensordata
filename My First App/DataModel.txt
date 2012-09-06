@@ -1,0 +1,106 @@
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+
+
+-- -----------------------------------------------------
+-- Table `platform`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `platform` ;
+
+CREATE  TABLE IF NOT EXISTS `platform` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `lat` INT NULL ,
+  `long` INT NULL ,
+  `elev` INT NULL ,
+  `mobile_no` MEDIUMTEXT NULL ,
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `sensor`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `sensor` ;
+
+CREATE  TABLE IF NOT EXISTS `sensor` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `lat_offset` INT NULL ,
+  `long_offset` INT NULL ,
+  `elev_offset` INT NULL ,
+  `platform_id` INT NOT NULL ,
+  PRIMARY KEY (`id`) ,
+  INDEX `fk_sensor_platform1_idx` (`platform_id` ASC) ,
+  CONSTRAINT `fk_sensor_platform1`
+    FOREIGN KEY (`platform_id` )
+    REFERENCES `platform` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `phenomena`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `phenomena` ;
+
+CREATE  TABLE IF NOT EXISTS `phenomena` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `unit` VARCHAR(45) NULL ,
+  `min` DECIMAL(4,1) NULL ,
+  `max` DECIMAL(4,1) NULL ,
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `subsensor`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `subsensor` ;
+
+CREATE  TABLE IF NOT EXISTS `subsensor` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `sensor_id` INT NOT NULL ,
+  `phenomena_id` INT NOT NULL ,
+  PRIMARY KEY (`id`) ,
+  INDEX `fk_subsensor_sensor1_idx` (`sensor_id` ASC) ,
+  INDEX `fk_subsensor_phenomena1_idx` (`phenomena_id` ASC) ,
+  CONSTRAINT `fk_subsensor_sensor1`
+    FOREIGN KEY (`sensor_id` )
+    REFERENCES `sensor` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_subsensor_phenomena1`
+    FOREIGN KEY (`phenomena_id` )
+    REFERENCES `phenomena` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `measurement`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `measurement` ;
+
+CREATE  TABLE IF NOT EXISTS `measurement` (
+  `timestamp` TIMESTAMP NOT NULL ,
+  `value` DECIMAL(4,1) NULL ,
+  `subsensor_id` INT NOT NULL ,
+  PRIMARY KEY (`timestamp`, `subsensor_id`) ,
+  INDEX `fk_measurement_subsensor1_idx` (`subsensor_id` ASC) ,
+  CONSTRAINT `fk_measurement_subsensor1`
+    FOREIGN KEY (`subsensor_id` )
+    REFERENCES `subsensor` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+
