@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.telephony.SmsMessage;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
@@ -20,9 +21,13 @@ import android.widget.ListView;
 import android.widget.Toast;
 import android.database.Cursor;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -58,7 +63,7 @@ public class MenuActivity extends Activity {
 		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 		    
 		
-			saveSms();
+		//	saveSms();
 		}
 
 	/**	try {
@@ -113,7 +118,7 @@ public class MenuActivity extends Activity {
 	}
 
 
-	public void saveSms() {
+	public void saveSms(String write) {
 		boolean mExternalStorageAvailable = false;
 		boolean mExternalStorageWritable = false;
 		String state = Environment.getExternalStorageState();
@@ -127,21 +132,16 @@ public class MenuActivity extends Activity {
 
 		String FILENAME = "smsdata";
 		try {
-			File smsdata = new File(getExternalFilesDir(null), "smsdata.txt");
-			FileOutputStream fos = new FileOutputStream(smsdata);
-
-			for (int i = 0; i < data.length; i++) {
-				fos.write((data[i] + "\n").getBytes());
-			}
-			
-			fos.close();
+			BufferedWriter out = new BufferedWriter(new FileWriter(getExternalFilesDir(null)+"/smsdata.txt",true));
+				out.write(write + "\n");
+			out.close();
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
 
 	}
 
-
+	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
 		super.onPause();
@@ -155,8 +155,9 @@ public class MenuActivity extends Activity {
 
 	@TargetApi(9)
 	public int getSms(Context cx) {
+		Uri smsInbox=Uri.parse("content://sms/inbox");
 		Cursor curs = cx.getContentResolver().query(
-				Uri.parse("content://sms/inbox"), null, null, null, null);
+				smsInbox, null, null, null, null);
 
 		int count = curs.getCount();
 		data = new String[count];
@@ -166,7 +167,7 @@ public class MenuActivity extends Activity {
 
 		//reading sms from phone
 		if (curs.moveToFirst()) {
-			for (int i = 0; i < curs.getCount(); i++) {
+			for (int i = 0; i < 3; i++) {  //<curs.getCount()
 				try {
 					searchNumbers[i] = curs.getString(curs
 							.getColumnIndex("address"));
@@ -177,8 +178,17 @@ public class MenuActivity extends Activity {
 						}
 					}
 					if (check) {
+						//copy data for decoding
 						numbers[interestCount] = searchNumbers[i];
 						data[interestCount] = curs.getString(curs.getColumnIndex("body"));
+						
+
+						//save and remove from phone
+						
+						String id=curs.getString(curs.getColumnIndex("_id"));
+						saveSms(curs.getString(curs.getColumnIndex("date"))+"/"+numbers[interestCount] + "/" + data[interestCount]);
+						cx.getContentResolver().delete(Uri.parse("content://sms"), "_id=?", new String[] {id});
+						
 						interestCount++;
 					}
 					curs.moveToNext();
@@ -199,13 +209,10 @@ public class MenuActivity extends Activity {
 		for (int i=0; i <interestCount; i++) 
 		{
 			DataSet neu = null;
-			String number= numbers[i].substring(1, numbers[i].length());
 			
 			try {
-				neu = storage.addNewDataSet(DataCompression.decode(data[i]), 
-						Long.decode(numbers[i].substring(1, numbers[i].length())));
+				neu = storage.addNewDataSet(DataCompression.decode(data[i]),numbers[i]);
 				//database save
-				number=numbers[i];
 				
 			} catch (DecodeFatalException e) {
 				Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
@@ -214,35 +221,32 @@ public class MenuActivity extends Activity {
 			}catch (DecodeRecoverException e) {
 				Toast.makeText(cx, "DataSet "+i+": "+ e.toString(), Toast.LENGTH_SHORT).show();
 				
-				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),
-						Long.decode(numbers[i].substring(1, numbers[i].length())));
+				neu=storage.addNewDataSet(((DecodeRecoverException) e).getDataInts(),numbers[i]);
 			} catch (DecodeException e) {			//unreachable}
 			}
+			
 			//----------------------------------------------------------------------------------------------------------------------------------------
-			//try to minimize extra effort in dataset, maybe dismiss datastorage
-			//use dataset to fill database, problems might be, querying the correct sensors/subsensors
+			//try to minimize extra effort in dataset, maybe dismiss datastorage, maybe not, since will be used rarely
+			//datenaufnahme, siehe zettel, abarbeiten
 			//set default phenomenas here or in databasecontrol
 			//----------------------------------------------------------------------------------------------------------------------------------------
 			
 			
+			
+			}
+
 			long dbId = db.insertPlatform(0, 0, 0, 30, "+6142536182");
 			long sensorId = db.insertSensor(0, 0, 0, (int) dbId);
 
-			long phenomenaIdTemp = db.insertPhenomena("\u00B0 C", -50, 80);
-			long phenomenaIdMoist = db.insertPhenomena("\u0025", 0, 100);
-			long phenomenaIdBat = db.insertPhenomena("V", 0, 6);
 
-			long subsensorId = db.insertSubsensor((int) phenomenaIdTemp,(int) sensorId);
-			long subsensorId2 = db.insertSubsensor((int) phenomenaIdMoist,(int) sensorId);
+			long subsensorId = db.insertSubsensor((int) 2,(int) sensorId);
+			long subsensorId2 = db.insertSubsensor((int) 1,(int) sensorId);
 			
-			long [] res = db.insertMeasurement((int) subsensorId2, 
-					new float[] { 4678f, 3567.7f, 678.5f, 678.8f},
-					new long[] {1111111,2222222,333333,444444444});
-			
-			
-			
-			}
-			
+			db.insertMeasurement((int) subsensorId2, 
+				new float[] { 4678f, 3567.7f, 678.5f, 678.8f},
+				new long[] {1111111,2222222,333333,444444444});
+		
+		
 			
 			db.close();
 		

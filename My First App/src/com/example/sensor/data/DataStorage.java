@@ -66,7 +66,7 @@ public class DataStorage implements Parcelable {
 	
 	
 	@TargetApi(9)
-	public DataSet addNewDataSet(int[][] result, long id)
+	public DataSet addNewDataSet(int[][] result, String string)
 	{
 		float[][] data= new float[result[1].length][result.length-1];
 		for (int i=1; i < result.length; i++) {
@@ -82,27 +82,19 @@ public class DataStorage implements Parcelable {
 		c.set(result[0][0]+2000, result[0][1]-1, result[0][2], result[0][3], result[0][4]);
 		int localId =storage.size();	//Position, where DataSet will be placed 
 		DataSet element=new DataSet(data, 
-				c.getTimeInMillis(), id, localId,30); //30min offset by default
+				c.getTimeInMillis(), string, localId,30); //30min offset by default
 		storage.add(element);
 		
 		return element;
 	}
 	
-	public DataSet getData(long date, long id)
-	{
-		for(DataSet s: storage)
-		{
-			if (s.getDate().equals(date) && s.getId()==id) return s;
-		}
-		return null;
-	}
 	
-	public ArrayList<DataSet> getDataById(long id)
+	public ArrayList<DataSet> getDataById(String mobileNo)
 	{
 		ArrayList<DataSet> result = new ArrayList<DataSet>();
 		for(DataSet s: storage)
 		{
-			if (s.getId()==id) 
+			if (mobileNo.equals(s.getmobileNo())) 
 				result.add(s);
 		}
 		return result;

@@ -10,34 +10,32 @@ import android.text.format.Time;
 import android.view.View.MeasureSpec;
 
 public class DataSet implements Parcelable{
-	
 
-//TODO constants
-private Date date;
-private Date timeOffset;
-private int localId;	//necessary for handling by android-app
-private long id;
-private float[][] data;
+	// TODO constants
+	private Date date;
+	private Date timeOffset;
+	private int localId; // necessary for handling by android-app
+	private String mobileNo;
+	private float[][] data;
 
-public static final Parcelable.Creator CREATOR =
-new Parcelable.Creator() {
-    public DataSet createFromParcel(Parcel in) {
-        return new DataSet(in);
-    }
 
-    public DataSet[] newArray(int size) {
-        return new DataSet[size];
-    }
-};
+	public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+		public DataSet createFromParcel(Parcel in) {
+			return new DataSet(in);
+		}
 
+		public DataSet[] newArray(int size) {
+			return new DataSet[size];
+		}
+	};
 	
 //extract the data for each sensor from decoded c-code, form one array per sensor
-	public DataSet(float[][] data, long date, long id, int localId, int timeOffset)
+	public DataSet(float[][] data, long date, String mobileNo, int localId, int timeOffset)
 	{
-	this.data =data;		//expects float[sensorcount][measurecount]
+		this.data =data;		//expects float[sensorcount][measurecount]
 		
 		this.date= new Date(date);
-		this.id=id;
+		this.mobileNo=mobileNo;
 		this.localId=localId;
 		this.timeOffset = new Date(timeOffset*60000);	//convert minutes to milis
 	}
@@ -51,7 +49,7 @@ new Parcelable.Creator() {
 	@Override
 	public String toString() {
 		//set different time format here or on construct
-		return Integer.toString(localId)+")  from  +"+Long.toString(id)+"   "+ date.toString();
+		return Integer.toString(localId)+")  from  +"+mobileNo+"   "+ date.toString();
 	}
 	public int getLocalId() {
 		return localId;
@@ -77,12 +75,12 @@ new Parcelable.Creator() {
 		this.date = date;
 	}
 
-	public long getId() {
-		return id;
+	public String getmobileNo() {
+		return mobileNo;
 	}
 
-	public void setId(long id) {
-		this.id = id;
+	public void setmobileNo(String mobileNo) {
+		this.mobileNo = mobileNo;
 	}
 	
 	public float[] getMeausrements(int sensorNo)
@@ -138,7 +136,7 @@ new Parcelable.Creator() {
 			dest.writeFloatArray(data[i]);
 		}
 		dest.writeInt(localId);
-		dest.writeLong(id);
+		dest.writeString(mobileNo);
 		dest.writeLong(date.getTime());
 		dest.writeLong(timeOffset.getTime());
 		
@@ -153,7 +151,7 @@ new Parcelable.Creator() {
 			data[i]=in.createFloatArray();
 		}
 		localId=in.readInt();
-		id=in.readLong();
+		mobileNo=in.readString();
 		date=new Date(in.readLong());
 		timeOffset= new Date(in.readLong());
 	}
