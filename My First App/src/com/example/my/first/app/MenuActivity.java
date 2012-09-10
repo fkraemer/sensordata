@@ -48,7 +48,7 @@ public class MenuActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.menu);
 		
-
+		
 		//TODO Progressbar with another thread
 		list = (ListView) findViewById(R.id.listView1);
 		if (getSms(this) > 0) {
@@ -61,9 +61,8 @@ public class MenuActivity extends Activity {
 			saveSms();
 		}
 
-		try {
-			String path = "data/data/" + getPackageName()
-					+ "/databases/sensorLocalDB";
+	/**	try {
+			String path = "/data/data/" + getPackageName() +  "/databases/sensorLocalDB";
 			File f = new File(path);
 			if (!f.exists()) {
 				copyDb(getBaseContext().getAssets().open("mydb"),
@@ -75,15 +74,33 @@ public class MenuActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 			Log.e("dberror", e.toString());
-		}
-		
+		}*/
+/**		
 		DatabaseControl db = new DatabaseControl(this);
 		db.open();
-		db.close();
 		
+		long dbId = db.insertPlatform(0, 0, 0, 30, "+6142536182");
+		long sensorId = db.insertSensor(0, 0, 0, (int) dbId);
 
+		long phenomenaIdTemp = db.insertPhenomena("\u00B0 C", -50, 80);
+		long phenomenaIdMoist = db.insertPhenomena("\u0025", 0, 100);
+		long phenomenaIdBat = db.insertPhenomena("V", 0, 6);
+
+		long subsensorId = db.insertSubsensor((int) phenomenaIdTemp,(int) sensorId);
+		long subsensorId2 = db.insertSubsensor((int) phenomenaIdMoist,(int) sensorId);
+		
+		long [] res = db.insertMeasurement((int) subsensorId2, 
+				new float[] { 4678f, 3567.7f, 678.5f, 678.8f},
+				new long[] {1111111,2222222,333333,444444444});
+		
+		
+		
+		
+		
+		
+		db.close();
+*/
 	}
-	
 	
 	private void copyDb(InputStream open, FileOutputStream fileOutputStream) throws IOException {
 		byte [] buffer = new byte[1024];
@@ -175,13 +192,21 @@ public class MenuActivity extends Activity {
 		
 		//decoding sms
 		int fatalCount=0;
+
+		DatabaseControl db = new DatabaseControl(this);
+		db.open();
 		
 		for (int i=0; i <interestCount; i++) 
 		{
 			DataSet neu = null;
+			String number= numbers[i].substring(1, numbers[i].length());
+			
 			try {
 				neu = storage.addNewDataSet(DataCompression.decode(data[i]), 
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
+				//database save
+				number=numbers[i];
+				
 			} catch (DecodeFatalException e) {
 				Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
 				fatalCount++;
@@ -193,9 +218,35 @@ public class MenuActivity extends Activity {
 						Long.decode(numbers[i].substring(1, numbers[i].length())));
 			} catch (DecodeException e) {			//unreachable}
 			}
+			//----------------------------------------------------------------------------------------------------------------------------------------
+			//try to minimize extra effort in dataset, maybe dismiss datastorage
+			//use dataset to fill database, problems might be, querying the correct sensors/subsensors
+			//set default phenomenas here or in databasecontrol
+			//----------------------------------------------------------------------------------------------------------------------------------------
 			
+			
+			long dbId = db.insertPlatform(0, 0, 0, 30, "+6142536182");
+			long sensorId = db.insertSensor(0, 0, 0, (int) dbId);
+
+			long phenomenaIdTemp = db.insertPhenomena("\u00B0 C", -50, 80);
+			long phenomenaIdMoist = db.insertPhenomena("\u0025", 0, 100);
+			long phenomenaIdBat = db.insertPhenomena("V", 0, 6);
+
+			long subsensorId = db.insertSubsensor((int) phenomenaIdTemp,(int) sensorId);
+			long subsensorId2 = db.insertSubsensor((int) phenomenaIdMoist,(int) sensorId);
+			
+			long [] res = db.insertMeasurement((int) subsensorId2, 
+					new float[] { 4678f, 3567.7f, 678.5f, 678.8f},
+					new long[] {1111111,2222222,333333,444444444});
+			
+			
+			
+			}
+			
+			
+			db.close();
 		
-		}
+		
 		
 		//filling adapter with successfull d0ecoded datasets
 		adapterFill = new String[storage.size()];		//TODO change to ArrayList, if adding service checking for new SMS
@@ -203,7 +254,6 @@ public class MenuActivity extends Activity {
 		{
 			adapterFill[i] = storage.getDatabyLocalId(i).toString();
 		}
-		
 		return interestCount-fatalCount;
 	}
 

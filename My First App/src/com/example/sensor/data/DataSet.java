@@ -34,7 +34,7 @@ new Parcelable.Creator() {
 //extract the data for each sensor from decoded c-code, form one array per sensor
 	public DataSet(float[][] data, long date, long id, int localId, int timeOffset)
 	{
-		this.data =data;
+	this.data =data;		//expects float[sensorcount][measurecount]
 		
 		this.date= new Date(date);
 		this.id=id;
@@ -85,31 +85,35 @@ new Parcelable.Creator() {
 		this.id = id;
 	}
 	
+	public float[] getMeausrements(int sensorNo)
+	{
+		return data[sensorNo];
+	}
 	public Float[] getTempData(int k)
 	{
-		Float[] result = new Float[data.length-1];
+		
+		Float[] result = new Float[data[1].length];
 		if (k<4 && k>=0) {		
 			//return float array, first row contains timestamp
-			for (int i=1; i < data.length; i++) {
+			for (int i=0; i < data[1].length; i++) {
 				try {
-				result[i-1] =new Float( data[i][k+4]);
+				result[i] =new Float( data[k+4][i]);
 				} catch (NullPointerException e) {		//evntl NullPointer fangen
 					e.printStackTrace();				
 				}
 			}
 		}
-		
 		return result;		
 	}
 	
 	public Float[] getMoistData(int k)
 	{
-		Float[] result = new Float[data.length-1];
+		Float[] result = new Float[data[1].length];
 		if (k<4 && k>=0) {		
 			//return float array, first row contains timestamp
-			for (int i=1; i < data.length; i++) {
+			for (int i=0; i < data[1].length; i++) {
 				try {
-				result[i-1] =new Float( data[i][k]);
+				result[i] =new Float( data[k][i]);
 				} catch (NullPointerException e) {		//evntl NullPointer fangen
 					e.printStackTrace();				
 				}
@@ -117,8 +121,8 @@ new Parcelable.Creator() {
 		} else {
 			Arrays.fill(result, 0);		//out of range calls get back zeros
 		}
-		return result;		
-	}
+		return result;	
+	}	
 
 
 	public int describeContents() {

@@ -63,14 +63,16 @@ public class DataStorage implements Parcelable {
 		readFromParcel(in);
 	}
 
+	
+	
 	@TargetApi(9)
 	public DataSet addNewDataSet(int[][] result, long id)
 	{
-		float[][] data= new float[result.length][result[1].length];
+		float[][] data= new float[result[1].length][result.length-1];
 		for (int i=1; i < result.length; i++) {
-			for (int j=1; j < result[1].length; j++) {
+			for (int j=0; j < result[1].length; j++) {
 			try {
-				data[i][j] = (float) result [i][j] / 10;		//IMPORTANT devide int input by 10
+				data[j][i-1] = (float) result[i][j] / 10;		//IMPORTANT devide int input by 10 ==> here: SWAP COLUMN AND ROWS
 			} catch (NullPointerException e) {		//evntl NullPointer fangen (1st ln)
 				e.printStackTrace();				
 			}

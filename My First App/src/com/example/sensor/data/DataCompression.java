@@ -50,7 +50,7 @@ public abstract class DataCompression {
 		{
 			for (int j=0;j<SENSORCOUNT;j++)
 			{
-			result[i][j]=result[i-1][j]+result[i][j];		//get absolutes	
+			result[i][j]+=result[i-1][j];		//get absolutes	
 			}
 		}
 		
