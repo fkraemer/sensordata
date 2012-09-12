@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent" >
-      
-    <LinearLayout    android:id="@+id/bottom_button"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:layout_alignParentBottom="true" >
-    
+    android:layout_height="fill_parent"
+    tools:context=".MenuActivity" >
 
-    <Button   android:layout_height="wrap_content"
-    	android:layout_width="match_parent"
-        android:text="@string/button_plot"
-        android:onClick="plotPlots"  />  
-        </LinearLayout>
-        
+    <LinearLayout
+        android:id="@+id/bottom_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical" >
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="plotPlots"
+            android:text="@string/button_plot" />
+    </LinearLayout>
+
     <ListView
         android:id="@+id/listView1"
+        android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_width="fill_parent"	
         android:layout_above="@id/bottom_button" />
+
 </RelativeLayout>

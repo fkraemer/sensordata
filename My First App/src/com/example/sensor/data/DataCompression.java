@@ -6,13 +6,14 @@ import java.util.Arrays;
 
 public abstract class DataCompression {
 
-	public final static int ANCHORLENGTH=14;
+	public final static int ANCHORLENGTH=15;
+	public final static int ANCHORCHARLENGTH=20;
 	public final static int SENSORCOUNT=9;
 	public final static int MEASURECOUNT=24;
 	private final static int HUFCODEBOOKLENGTH=27;
 	private final static int CBITS = 6;
 	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	private final static int[] anchorCodeBook={7,4,5,5,6,9,9,9,9,9,9,9,9,7};
+	private final static int[] anchorCodeBook={12,7,4,5,5,6,9,9,9,9,9,9,9,9,7};
 	private final static int[][] huff28 = { { 0,  -5,   -1,    5,   1,   10,  15,  1001,  -10,   20,  25,   -2,    2,    
 			3,  -4,   -3,   11,  30,  -42,  -16,   -6,    8,   44,  60,   69,   70, 1002 },
 			{ 0,   2,   12,   13,  28,   58,   59,  120,  121,  122,  123,  124,  125,  
@@ -31,11 +32,11 @@ public abstract class DataCompression {
 	public static int[][] decode(String s) throws DecodeException
 	{		
 		int[][] result = new int[MEASURECOUNT+1][SENSORCOUNT];
-		int [] anchorVec = decodeAnchor(s.substring(0, 18));
+		int [] anchorVec = decodeAnchor(s.substring(0, ANCHORCHARLENGTH));
 		DecodeRecoverException excep=null;
 		
 		try {
-			int [][] difsVec = decodeDifs(s.substring(18, s.length()),result);
+			int [][] difsVec = decodeDifs(s.substring(ANCHORCHARLENGTH, s.length()),result);
 		} catch (DecodeFatalException e) {
 			throw e;
 		}catch (DecodeRecoverException e) {

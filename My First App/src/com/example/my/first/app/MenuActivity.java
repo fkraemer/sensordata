@@ -63,59 +63,9 @@ public class MenuActivity extends Activity {
 		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 		    
 		
-		//	saveSms();
 		}
-
-	/**	try {
-			String path = "/data/data/" + getPackageName() +  "/databases/sensorLocalDB";
-			File f = new File(path);
-			if (!f.exists()) {
-				copyDb(getBaseContext().getAssets().open("mydb"),
-						new FileOutputStream(path));
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			Log.e("dberror", e.toString());
-		} catch (IOException e) {
-			e.printStackTrace();
-			Log.e("dberror", e.toString());
-		}*/
-/**		
-		DatabaseControl db = new DatabaseControl(this);
-		db.open();
-		
-		long dbId = db.insertPlatform(0, 0, 0, 30, "+6142536182");
-		long sensorId = db.insertSensor(0, 0, 0, (int) dbId);
-
-		long phenomenaIdTemp = db.insertPhenomena("\u00B0 C", -50, 80);
-		long phenomenaIdMoist = db.insertPhenomena("\u0025", 0, 100);
-		long phenomenaIdBat = db.insertPhenomena("V", 0, 6);
-
-		long subsensorId = db.insertSubsensor((int) phenomenaIdTemp,(int) sensorId);
-		long subsensorId2 = db.insertSubsensor((int) phenomenaIdMoist,(int) sensorId);
-		
-		long [] res = db.insertMeasurement((int) subsensorId2, 
-				new float[] { 4678f, 3567.7f, 678.5f, 678.8f},
-				new long[] {1111111,2222222,333333,444444444});
-		
-		
-		
-		
-		
-		
-		db.close();
-*/
 	}
 	
-	private void copyDb(InputStream open, FileOutputStream fileOutputStream) throws IOException {
-		byte [] buffer = new byte[1024];
-		int length;
-		while ((length = open.read(buffer)) > 0) {
-			fileOutputStream.write(buffer, 0, length);
-		}
-		open.close();
-		fileOutputStream.close();
-	}
 
 
 	public void saveSms(String write) {

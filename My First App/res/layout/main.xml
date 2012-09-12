@@ -3,13 +3,58 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
-    
-    
-    
-    <Button android:id="@+id/choose"
-        android:layout_height="wrap_content"
-    	android:layout_width="wrap_content"
-        android:text="@string/button_choose"
-        android:onClick="choosePlots" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <Button
+            android:id="@+id/insertButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:onClick="insertNode"
+            android:text="Insert new Node" />
+
+        <LinearLayout
+            android:id="@+id/linearLayout1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
+
+            <Button
+                android:id="@+id/plotButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:onClick="plotPlots"
+                android:text="Plot most recent" />
+
+            <ListView
+                android:id="@+id/startListView"
+                android:layout_width="match_parent"
+                android:layout_height="188dp" >
+            </ListView>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/selectButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/linearLayout1"
+            android:onClick="selectPlots"
+            android:text="Select &amp; Plot data" />
+
+        <Button
+            android:id="@+id/changeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/selectButton"
+            android:onClick="changeMetadata"
+            android:text="View &amp; Change Node Metadata" />
+
+    </RelativeLayout>
 
 </LinearLayout>

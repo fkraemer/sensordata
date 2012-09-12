@@ -171,13 +171,15 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	//looks up a platform with the passed number, if there are more than one, returns the one, with the most recent measurements
 	public long putPlatform(String mobileNo) {
 		Cursor curs = db.query(DATABASE_TABLE_PLATFORM, new String[] {KEY_ID}, KEY_MOBILENO+"='"+mobileNo+"'", null, null, null,null);
-		long result = -1; // case cursor is empty
+		curs.moveToFirst();
+		System.out.println(curs.getCount());
+		long result = -1; // case if cursor is empty
 		if (curs.getCount()==1) {
 			result= curs.getLong(0);
-		} else 	if (curs.getCount()>1) {  // multiple to choose from, get most recent
+		} else 	if (curs.getCount()>2) {  // multiple to choose from, get most recent
 			curs = db.rawQuery("SELECT "+ DATABASE_TABLE_PLATFORM+"."+KEY_ID+
 					" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SENSOR+","+DATABASE_TABLE_SUBSENSOR+","+DATABASE_TABLE_MEASUREMENT+","+DATABASE_TABLE_PHENOMENA+
-					" ON "+","+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
+					" ON "+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
 					" AND "+DATABASE_TABLE_SENSOR+"."+KEY_ID+"="+DATABASE_TABLE_SUBSENSOR+"."+KEY_SENSORID+
 					" AND "+DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+"="+DATABASE_TABLE_MEASUREMENT+"."+KEY_SUBSENSORID+
 					" AND "+DATABASE_TABLE_PHENOMENA+"."+KEY_UNIT+"= 'V'"+
@@ -216,7 +218,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		// generating timestamps
 		long[] times = new long[rowCount];
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
-		c.set(data[0][0]+2000, data[0][1]-1, data[0][2], data[0][3], data[0][4]);
+		c.set(data[0][1]+2000, data[0][2]-1, data[0][3], data[0][4], data[0][5]);
 		long timestamp=c.getTimeInMillis();
 		Cursor curs = getPlatform(platformId);			 //30min offset by default
 		long timeOffset = curs.getLong(curs.getColumnIndex(KEY_PERIOD));		//period MUST be set at this point
@@ -228,7 +230,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		//for this cursor:expecting to be [0] moist of sensor[0], [1] temp of sensor[0] and so on and [8] the voltage of sensor[0]
 		curs = db.rawQuery("SELECT "+ DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+
 				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SENSOR+","+DATABASE_TABLE_SUBSENSOR+","+","+
-				" ON "+","+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
+				" ON "+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
 				" AND "+DATABASE_TABLE_SENSOR+"."+KEY_ID+"="+DATABASE_TABLE_SUBSENSOR+"."+KEY_SENSORID, null);
 		for (int i =0; i<9; i++) {
 		float [] values= new float[columnCount-1];	//1st row is anchor
@@ -243,7 +245,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	public Cursor getMeasurementsInterval(long minTime, long maxTime, long subSensorId) {
 		return db.rawQuery("SELECT "+ DATABASE_TABLE_MEASUREMENT+"."+KEY_TIMESTAMP+" , "+DATABASE_TABLE_MEASUREMENT+"."+KEY_VALUE+
 				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SUBSENSOR+","+
-				" ON "+","+DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+"="+subSensorId+
+				" ON "+DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+"="+subSensorId+
 				" WHERE "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+">="+Long.toString(minTime)+
 				" AND "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+"<="+Long.toString(maxTime)+
 				" ORDER BY"+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+" ASC", null);
