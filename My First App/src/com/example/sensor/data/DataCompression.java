@@ -12,7 +12,7 @@ public abstract class DataCompression {
 	public final static int MEASURECOUNT=24;
 	private final static int HUFCODEBOOKLENGTH=27;
 	private final static int CBITS = 6;
-	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	private final static int[] anchorCodeBook={12,7,4,5,5,6,9,9,9,9,9,9,9,9,7};
 	private final static int[][] huff28 = { { 0,  -5,   -1,    5,   1,   10,  15,  1001,  -10,   20,  25,   -2,    2,    
 			3,  -4,   -3,   11,  30,  -42,  -16,   -6,    8,   44,  60,   69,   70, 1002 },
@@ -146,7 +146,7 @@ public abstract class DataCompression {
 		for (int i=0; i<ANCHORLENGTH;i++) {
 				int newpos=pos+anchorcodebook[i];
 				try {
-				result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
+					result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
 				} catch (NumberFormatException e)
 				{
 					result[i]=Integer.MAX_VALUE;
