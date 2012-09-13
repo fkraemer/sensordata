@@ -56,14 +56,9 @@ public class MenuActivity extends Activity {
 		
 		//TODO Progressbar with another thread
 		list = (ListView) findViewById(R.id.listView1);
-		if (getSms(this) > 0) {
-			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_list_item_multiple_choice, adapterFill);
-			list.setAdapter(adapter);
-		    list.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-		    
+	
 		
-		}
+		
 	}
 	
 
@@ -103,7 +98,7 @@ public class MenuActivity extends Activity {
 		super.onPostResume();
 	}
 
-	@TargetApi(9)
+/**	@TargetApi(9)
 	public int getSms(Context cx) {
 		Uri smsInbox=Uri.parse("content://sms/inbox");
 		Cursor curs = cx.getContentResolver().query(
@@ -225,5 +220,5 @@ public class MenuActivity extends Activity {
 		} else {
 			Toast.makeText(getApplicationContext(), "No data selected!", Toast.LENGTH_LONG).show();
 		}
-	}
+	}*/
 }

@@ -29,6 +29,7 @@ public class DatabaseControl {
 	public static final String KEY_ELEV= "elev";
 	public static final String KEY_PERIOD= "period";
 	public static final String KEY_MOBILENO= "mobile_no";
+	public static final String KEY_DESCR= "description";
 
 
 	private final static String DATABASE_TABLE_SENSOR="sensor";	// has KEY_ID
@@ -74,11 +75,11 @@ public class DatabaseControl {
 private static class DatabaseHelper extends SQLiteOpenHelper {
 
 	private final static String DATABASE_NAME="localsensorDB";
-	private final static int DATABASE_VERSION=1;
+	private final static int DATABASE_VERSION=2;
 	
 	private static final String PLATFORM_CREATE="CREATE  TABLE IF NOT EXISTS " + DATABASE_TABLE_PLATFORM + " ( " +
 			KEY_ID+" INTEGER PRIMARY KEY AUTOINCREMENT,  "+ KEY_LAT +" INTEGER  ,  "+ KEY_LON +" INTEGER  ,  "+ KEY_ELEV +
-			" INTEGER  , "+ KEY_PERIOD +" INTEGER  ," + KEY_MOBILENO +" TEXT NOT NULL  )"; 
+			" INTEGER  , "+ KEY_PERIOD +" INTEGER  ," + KEY_MOBILENO +" TEXT NOT NULL, "+ KEY_DESCR +" TEXT NOT NULL )"; 
 	
 	private static final String SENSOR_CREATE="CREATE  TABLE IF NOT EXISTS  "+ DATABASE_TABLE_SENSOR +
 			"(   "+ KEY_ID +" INTEGER PRIMARY KEY AUTOINCREMENT ,  "+ KEY_OFFY +" INTEGER  , "+ KEY_OFFX +" INTEGER  , " + KEY_OFFZ +
@@ -171,9 +172,8 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	//looks up a platform with the passed number, if there are more than one, returns the one, with the most recent measurements
 	public long putPlatform(String mobileNo) {
 		Cursor curs = db.query(DATABASE_TABLE_PLATFORM, new String[] {KEY_ID}, KEY_MOBILENO+"='"+mobileNo+"'", null, null, null,null);
-		curs.moveToFirst();
-		System.out.println(curs.getCount());
 		long result = -1; // case if cursor is empty
+		if (!curs.moveToFirst()) return result;
 		if (curs.getCount()==1) {
 			result= curs.getLong(0);
 		} else 	if (curs.getCount()>2) {  // multiple to choose from, get most recent
@@ -196,8 +196,8 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	//this inserts a platform, 4sensors, 9 subsensors in a default manner,
 	//with all Metadata set to 0 except period and mobileNo, which are the minimum required data
 	// for the database to work properly
-	public long insertPlatformToSubsensorWithoutMetadata(int period, String mobileNo) {
-		long platformId = insertPlatform(0, 0, 0, period, mobileNo);
+	public long insertPlatformToSubsensorWithoutMetadata(int period, String mobileNo,String descr) {
+		long platformId = insertPlatform(0, 0, 0, period, mobileNo,descr);
 		for (int i=0;i<4;i++)
 			{
 			long sensorId=insertSensor(0, 0, 0,(int) platformId);
@@ -208,6 +208,19 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return platformId;
 	}
 
+	public Cursor getAllPlatforms() throws SQLException {
+		Cursor curs = db.query(DATABASE_TABLE_PLATFORM, null, null, null,null,null,KEY_MOBILENO + "ASC , "+KEY_ID+" ASC");
+		curs.moveToFirst();
+		return curs;
+	}
+	
+	//getSensorsByPlatformId returns all Sensors of one platform ordered by Id (same order as inserted before)
+	public Cursor getSensorsByPlatformId(long platformId) {
+		Cursor curs = db.query(DATABASE_TABLE_SENSOR, null, KEY_PLATFORMID+" = "+platformId, null,null,null,KEY_ID+" ASC");
+		curs.moveToFirst();
+		return curs;
+	}
+	
 	//expecting raw decoded data with the rowcount being the number of measurements and the number of columns being the number of sensors
 	// the incoming data is considered to be too big by the factor of 10
 	//inserts the 9 rows of Measurements for the given platform, calculates timestamps from periods 
@@ -220,7 +233,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
 		c.set(data[0][1]+2000, data[0][2]-1, data[0][3], data[0][4], data[0][5]);
 		long timestamp=c.getTimeInMillis();
-		Cursor curs = getPlatform(platformId);			 //30min offset by default
+		Cursor curs = getPlatform(platformId);		
 		long timeOffset = curs.getLong(curs.getColumnIndex(KEY_PERIOD));		//period MUST be set at this point
 		for (int i = 0; i < rowCount; i++) {
 			times[i] = timestamp + timeOffset * i;
@@ -252,11 +265,9 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 	
 	
-	
-	
 	//--------------------------------------------------------------------------------------------------------------------------------
 	//methods for insertion into database
-	public long insertPlatform(int lat, int lon, int elev,int period, String mobileNo)
+	private long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_LAT, lat);
@@ -264,10 +275,11 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		cont.put(KEY_ELEV, elev);
 		cont.put(KEY_PERIOD, period);
 		cont.put(KEY_MOBILENO, mobileNo);
+		cont.put(KEY_DESCR, descr);
 		return db.insert(DATABASE_TABLE_PLATFORM, null, cont);
 	}
 	
-	public boolean updatePlatform(int id, int lat, int lon, int elev,int period, long mobileNo) {
+	public boolean updatePlatform(int id, int lon, int lat, int elev,int period, String mobileNo, String descr) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_ID, id);
 		cont.put(KEY_LAT, lat);
@@ -275,24 +287,20 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		cont.put(KEY_ELEV, elev);
 		cont.put(KEY_PERIOD, period);
 		cont.put(KEY_MOBILENO, mobileNo);
+		cont.put(KEY_DESCR, descr);
 		return db.update(DATABASE_TABLE_PLATFORM, cont, KEY_ID + "+" + id, null) > 0;
 	}
 
-	public boolean deletePLATFORM(int id) {
+	private boolean deletePLATFORM(int id) {
 		return db.delete(DATABASE_TABLE_PLATFORM, KEY_ID + "=" + id,null) > 0;
 	}
-	
-	
-	
-	
+		
 	//returns platform-row with specified id
 	public Cursor getPlatform(int id) throws SQLException {
 		return getRowById(id, DATABASE_TABLE_PLATFORM);
 	}
 	
-	
-	
-	public long insertSensor( int offX, int offY, int offZ, int platform_id) {
+	private long insertSensor( int offX, int offY, int offZ, int platform_id) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_OFFX, offX);
 		cont.put(KEY_OFFY, offY);
@@ -301,7 +309,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return db.insert(DATABASE_TABLE_SENSOR, null, cont);
 	}
 
-	public boolean updateSensor(int id, float offX, float offY, float offZ, int platform_id) {
+	public boolean updateSensor(int id, int offX, int offY, int offZ, int platform_id) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_ID, id);
 		cont.put(KEY_OFFX, offX);
@@ -311,8 +319,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return db.update(DATABASE_TABLE_SENSOR, cont, KEY_ID + "+" + id, null) > 0;
 	}
 	
-	
-	public boolean deleteSensor(int id) {
+	private boolean deleteSensor(int id) {
 		return db.delete(DATABASE_TABLE_SENSOR, KEY_ID + "=" + id,null) > 0;
 	}
 	
@@ -321,8 +328,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return getRowById(id, DATABASE_TABLE_SENSOR);
 	}
 	
-
-	public long insertSubsensor( int phenomenaId, int sensorId)
+	private long insertSubsensor( int phenomenaId, int sensorId)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_SENSORID, sensorId);
@@ -340,17 +346,16 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 	
 	
-	public boolean deleteSubsensor(int id) {
+	private boolean deleteSubsensor(int id) {
 		return db.delete(DATABASE_TABLE_SUBSENSOR, KEY_ID + "=" + id,null) > 0;
 	}
 	
 	//returns subsensor-row with specified id
-		public Cursor getSubsensor(int id) throws SQLException {
+	public Cursor getSubsensor(int id) throws SQLException {
 			return getRowById(id, DATABASE_TABLE_SUBSENSOR);
 	}
-		
-		
-	public long insertPhenomena( String unit, float min, float max)
+			
+	private long insertPhenomena( String unit, float min, float max)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_UNIT, unit);
@@ -370,17 +375,16 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return db.update(DATABASE_TABLE_PHENOMENA, cont, KEY_ID + "+" + id, null) > 0;
 	}
 	
-	public boolean deletePhenomena(int id) {
+	private boolean deletePhenomena(int id) {
 		return db.delete(DATABASE_TABLE_PHENOMENA, KEY_ID + "=" + id,null) > 0;
 	}
 	
-	
 	//returns phenomena-row with specified id
-		public Cursor getPhenomena(int id) throws SQLException {
+	public Cursor getPhenomena(int id) throws SQLException {
 			return getRowById(id, DATABASE_TABLE_PHENOMENA);
 	}
 		
-	public void insertMeasurement(int subsensorId, float [] values, long [] timestamps) {
+	private void insertMeasurement(int subsensorId, float [] values, long [] timestamps) {
 		ContentValues val;
 		//long [] result = new long[values.length];
 		for (int i=0; i<values.length; i++) {

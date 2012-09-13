@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -50,6 +51,7 @@ public class DataService extends Service {
 		private String[] numbers = new String[0];
 		private String[] adapterFill = new String[0];
 		private Thread checkSmsThread;
+		private DatabaseControl db;
 		
 		
 	public DataService() {
@@ -62,6 +64,9 @@ public class DataService extends Service {
 		getStateFromFile();
 		cx =getApplicationContext();
 
+		//opening database
+		db = new DatabaseControl(cx);
+		db.open();
 			
 			//starting periodical check for new SMS
 			checkSmsThread = new Thread() {
@@ -69,9 +74,12 @@ public class DataService extends Service {
 				public void run() {
 					while (!isInterrupted()) {
 						try {
-							int received=getSms(cx);
+							boolean justonce=false;		//TODO, just for debug, allowing for just one sms to be read
+							int received=0;
+							if (!justonce) received=getSms(cx);
 							if (received > 0) {
-								//showing successfull read and save to user
+								justonce=true;
+								//showing successful read and save to user
 								String ns = Context.NOTIFICATION_SERVICE;
 								NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
 								
@@ -100,6 +108,7 @@ public class DataService extends Service {
 			};
 			
 			checkSmsThread.start();
+			
 					
 
 	}
@@ -108,6 +117,7 @@ public class DataService extends Service {
 	public void onDestroy() {
 		checkSmsThread.interrupt();
 		saveStateToFile();
+		db.close();
 	}
 
 	@Override
@@ -125,12 +135,41 @@ public class DataService extends Service {
 	 * saving values/timestamps with platformId after query    - get number of values
 	 * get saved values (to plot them)
 	 */
-	public IBinder onBind(Intent arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	
+	public IBinder onBind(Intent arg0) {
+		return new LocalBinder();
+	}
+	class LocalBinder extends Binder {
+        DataService getService() {
+            // Return this instance of DataService so clients can call public methods
+            return DataService.this;
+        }
+    }
+	
+	//****************************************************************************************************
+	//public methods used by bound activities
+
+	public Cursor getPlatform(long platformId) {
+		return db.getPlatform((int) platformId);
+	}
+	
+	public Cursor getPlatforms() {
+		return db.getAllPlatforms();
+	}
+	
+	public Cursor getSensorsByPlatformId(long platformId) {
+		return db.getSensorsByPlatformId(platformId);
+	}
+	
+	public boolean updatePlatform(int id, int lon, int lat, int elev,int period, String mobileNo, String descr){
+		return db.updatePlatform(id, lon,lat, elev,period, mobileNo,descr);
+	}
+	
+	public boolean updateSensor(int id, int offX, int offY, int offZ, int platformId) {
+		return db.updateSensor(id, offX, offY, offZ, platformId);
+		
+	}
 	
 	//helper methods:
 	//****************************************************************************************************
@@ -194,7 +233,6 @@ public class DataService extends Service {
 
 	}
 	
-	
 	public void saveStateToFile() {
 		String [] stringStore=new String[5];
 		//preparing data to be written
@@ -208,7 +246,7 @@ public class DataService extends Service {
 			for (int i = 0; i < 5; i++) {
 				out.write(stringStore[i]);
 			}
-			out.close();
+			out.close();	
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 		} catch (IOException e) {
@@ -257,14 +295,14 @@ public class DataService extends Service {
 					System.out.println("No Sms in Database.");
 				}
 			}
+			DatabaseControl db = new DatabaseControl(this);
+			db.open();
 		}
 		curs.close();
 		
 		//decoding sms
 		int fatalCount=0;
 
-		DatabaseControl db = new DatabaseControl(this);
-		db.open();
 		
 		for (int i=0; i <interestCount; i++) 
 		{
@@ -276,11 +314,11 @@ public class DataService extends Service {
 				//database save
 				
 			} catch (DecodeFatalException e) {
-				Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
+				//Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-				Toast.makeText(cx, "DataSet "+i+": "+ e.toString(), Toast.LENGTH_SHORT).show();
+			//	Toast.makeText(cx, "DataSet "+i+": "+ e.toString(), Toast.LENGTH_SHORT).show();
 				
 				sensorData = ((DecodeRecoverException) e).getDataInts();
 			} catch (DecodeException e) {			//unreachable
@@ -295,15 +333,13 @@ public class DataService extends Service {
 			if (sensorData != null) {
 				long platformId = db.putPlatform(numbers[i]);
 				if (platformId == -1) {
-					//TODO start translucent activity, ask user for metadata
+					//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 					int period = sensorData[0][0];   //getting period from decoded data, must be new version!
-					db.insertPlatformToSubsensorWithoutMetadata(period,	numbers[i]);
+					db.insertPlatformToSubsensorWithoutMetadata(period,	numbers[i],"");
 				}
 				db.putMeasurements(sensorData, (int) platformId);
 			}
 		}
-
-		db.close();
 		
 		
 		
@@ -311,6 +347,10 @@ public class DataService extends Service {
 		//adapterFill = new String[storage.size()];		//TODO change to ArrayList, if adding service checking for new SMS
 		return interestCount-fatalCount;
 	}
+
+
+
+
 
 }
 

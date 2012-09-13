@@ -24,8 +24,8 @@ public class MainActivity extends Activity {
 	
 
 	  public void choosePlots(View view) {
-		  Intent myIntent = new Intent(this,MenuActivity.class);
-//		  startActivity(myIntent);
+		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
+		  startActivity(myIntent);
 	  }
 	  
 

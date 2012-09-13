@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/chooseplat"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Choose a platform:"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
+
+        <Button
+            android:id="@+id/button1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:onClick="backToMain"
+            android:text="Return to main" />
+
+        <ListView
+            android:id="@+id/platList"
+            android:layout_width="match_parent"
+            android:layout_height="362dp"
+            android:layout_above="@+id/button1"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/textView1" >
+
+        </ListView>
+
+    </RelativeLayout>
+
+</LinearLayout>
