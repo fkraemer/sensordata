@@ -1,7 +1,5 @@
 package com.example.my.first.app;
 
-import com.example.my.first.app.DataService.LocalBinder;
-
 import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -14,7 +12,7 @@ public class MyConnection implements ServiceConnection {
 	
 	public void onServiceConnected(ComponentName arg0, IBinder localBinder) {
 		bound=true;
-		LocalBinder bind = (LocalBinder) localBinder;
+		DataService.LocalBinder bind = (DataService.LocalBinder) localBinder;
 		service= bind.getService();
 	}
 

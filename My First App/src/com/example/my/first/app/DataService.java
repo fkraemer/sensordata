@@ -26,6 +26,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.location.GpsStatus.NmeaListener;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
@@ -46,12 +47,14 @@ import android.widget.Toast;
 public class DataService extends Service {
 
 		private boolean receivedNewSms=false;
+	    private final IBinder mBinder = new LocalBinder();
 		private Context cx;
 		private String[] data = new String[0];
 		private String[] numbers = new String[0];
 		private String[] adapterFill = new String[0];
 		private Thread checkSmsThread;
 		private DatabaseControl db;
+		private NotificationManager mNotificationManager;
 		
 		
 	public DataService() {
@@ -63,6 +66,7 @@ public class DataService extends Service {
 		//setup as it was before
 		getStateFromFile();
 		cx =getApplicationContext();
+		mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
 		//opening database
 		db = new DatabaseControl(cx);
@@ -80,8 +84,6 @@ public class DataService extends Service {
 							if (received > 0) {
 								justonce=true;
 								//showing successful read and save to user
-								String ns = Context.NOTIFICATION_SERVICE;
-								NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
 								
 								int icon = R.drawable.notification;
 								CharSequence tickerText ="Saved "+received+" new messages";
@@ -89,8 +91,8 @@ public class DataService extends Service {
 								
 								Notification notification = new Notification(icon, tickerText, when);
 								
-								CharSequence contentTitle = "My notification";
-								CharSequence contentText = "Hello World!";
+								CharSequence contentTitle = "Sensordata";
+								CharSequence contentText = tickerText;
 								Intent notificationIntent = new Intent();
 								PendingIntent contentIntent = PendingIntent.getActivity(cx, 0, notificationIntent, 0);
 
@@ -99,7 +101,7 @@ public class DataService extends Service {
 								mNotificationManager.notify(1, notification);
 								receivedNewSms=true;
 							}
-							sleep(5000);
+							sleep(50000);
 						} catch (InterruptedException e) {
 							interrupt();
 						}
@@ -118,12 +120,15 @@ public class DataService extends Service {
 		checkSmsThread.interrupt();
 		saveStateToFile();
 		db.close();
+		mNotificationManager.cancel(1);
+		super.onDestroy();
 	}
+	
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		// TODO Auto-generated method stub
-		return super.onStartCommand(intent, flags, startId);
+		return START_STICKY;
 	}
 
 	@Override
@@ -138,9 +143,9 @@ public class DataService extends Service {
 
 	
 	public IBinder onBind(Intent arg0) {
-		return new LocalBinder();
+		return mBinder;
 	}
-	class LocalBinder extends Binder {
+	public class LocalBinder extends Binder {
         DataService getService() {
             // Return this instance of DataService so clients can call public methods
             return DataService.this;
@@ -221,7 +226,9 @@ public class DataService extends Service {
 		}
 		in.close();
 		} catch (FileNotFoundException e1) {
+			saveStateToFile(); //called at the very first startup if file doesnt exist already
 			e1.printStackTrace();
+			return;
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
@@ -295,8 +302,6 @@ public class DataService extends Service {
 					System.out.println("No Sms in Database.");
 				}
 			}
-			DatabaseControl db = new DatabaseControl(this);
-			db.open();
 		}
 		curs.close();
 		
@@ -308,28 +313,16 @@ public class DataService extends Service {
 		{
 			int [][] sensorData = null;
 			
-			//decoding data
 			try {
-				sensorData = DataCompression.decode(data[i]);
-				//database save
-				
+				//decoding data
+				sensorData = DataCompression.decode(data[i]);				
 			} catch (DecodeFatalException e) {
-				//Toast.makeText(cx, e.toString(), Toast.LENGTH_LONG).show();
 				fatalCount++;
 				continue;
 			}catch (DecodeRecoverException e) {
-			//	Toast.makeText(cx, "DataSet "+i+": "+ e.toString(), Toast.LENGTH_SHORT).show();
-				
 				sensorData = ((DecodeRecoverException) e).getDataInts();
 			} catch (DecodeException e) {			//unreachable
 			}
-			
-			//----------------------------------------------------------------------------------------------------------------------------------------
-			//try to minimize extra effort in dataset, maybe dismiss datastorage, maybe not, since will be used rarely
-			//datenaufnahme, siehe zettel, abarbeiten
-			//set default phenomenas here or in databasecontrol
-			//----------------------------------------------------------------------------------------------------------------------------------------
-			//add to database if decoding was successful
 			if (sensorData != null) {
 				long platformId = db.putPlatform(numbers[i]);
 				if (platformId == -1) {
@@ -340,11 +333,6 @@ public class DataService extends Service {
 				db.putMeasurements(sensorData, (int) platformId);
 			}
 		}
-		
-		
-		
-		//filling adapter with successfull d0ecoded datasets
-		//adapterFill = new String[storage.size()];		//TODO change to ArrayList, if adding service checking for new SMS
 		return interestCount-fatalCount;
 	}
 

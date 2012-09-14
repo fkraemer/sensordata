@@ -16,14 +16,39 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.main);
 		Intent intent = new Intent(this, DataService.class);
 		startService(intent);
+		intent = new Intent(this, LocalService.class);
+		startService(intent);
 		
 		
 	}
 
 
-	
 
-	  public void choosePlots(View view) {
+
+	@Override
+	protected void onDestroy() {
+		if (isFinishing()) {
+			//Intent myIntent = new Intent(this,DataService.class);
+			//stopService(myIntent);
+		}
+		super.onDestroy();
+	}
+
+	
+	@Override
+	protected void onStop() {
+		onDestroy();
+		super.onStop();
+	}
+
+
+
+
+	public void insertNode(View view) {
+		finish(); //calls ondestroy then
+	}
+
+	public void changeMetadata(View view) {
 		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
 		  startActivity(myIntent);
 	  }

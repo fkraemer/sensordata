@@ -8,6 +8,7 @@ import com.example.sensor.data.DataSet;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
@@ -75,7 +76,7 @@ public class DatabaseControl {
 private static class DatabaseHelper extends SQLiteOpenHelper {
 
 	private final static String DATABASE_NAME="localsensorDB";
-	private final static int DATABASE_VERSION=2;
+	private final static int DATABASE_VERSION=3;
 	
 	private static final String PLATFORM_CREATE="CREATE  TABLE IF NOT EXISTS " + DATABASE_TABLE_PLATFORM + " ( " +
 			KEY_ID+" INTEGER PRIMARY KEY AUTOINCREMENT,  "+ KEY_LAT +" INTEGER  ,  "+ KEY_LON +" INTEGER  ,  "+ KEY_ELEV +
@@ -175,7 +176,12 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		long result = -1; // case if cursor is empty
 		if (!curs.moveToFirst()) return result;
 		if (curs.getCount()==1) {
+			try {
 			result= curs.getLong(0);
+		} catch (CursorIndexOutOfBoundsException e) {
+			e.printStackTrace();
+			return result;		//-1
+		}
 		} else 	if (curs.getCount()>2) {  // multiple to choose from, get most recent
 			curs = db.rawQuery("SELECT "+ DATABASE_TABLE_PLATFORM+"."+KEY_ID+
 					" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SENSOR+","+DATABASE_TABLE_SUBSENSOR+","+DATABASE_TABLE_MEASUREMENT+","+DATABASE_TABLE_PHENOMENA+
@@ -187,7 +193,12 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 					" ORDER BY "+DATABASE_TABLE_PLATFORM+"."+KEY_ID+ " DESC LIMIT 1"
 					,null);
 			curs.moveToFirst();
+			try {
 			result= curs.getLong(0);
+			} catch (CursorIndexOutOfBoundsException e) {
+				e.printStackTrace();
+				return result;		//-1
+			}
 		}
 		
 		return result;
@@ -233,18 +244,18 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
 		c.set(data[0][1]+2000, data[0][2]-1, data[0][3], data[0][4], data[0][5]);
 		long timestamp=c.getTimeInMillis();
-		Cursor curs = getPlatform(platformId);		
-		long timeOffset = curs.getLong(curs.getColumnIndex(KEY_PERIOD));		//period MUST be set at this point
+		long timeOffset = data[0][0];
 		for (int i = 0; i < rowCount; i++) {
 			times[i] = timestamp + timeOffset * i;
 		}
 		
 		//get necessary Ids
 		//for this cursor:expecting to be [0] moist of sensor[0], [1] temp of sensor[0] and so on and [8] the voltage of sensor[0]
-		curs = db.rawQuery("SELECT "+ DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+
-				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SENSOR+","+DATABASE_TABLE_SUBSENSOR+","+","+
+		Cursor curs = db.rawQuery("SELECT "+ DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+
+				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SENSOR+","+DATABASE_TABLE_SUBSENSOR+
 				" ON "+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
 				" AND "+DATABASE_TABLE_SENSOR+"."+KEY_ID+"="+DATABASE_TABLE_SUBSENSOR+"."+KEY_SENSORID, null);
+		curs.moveToFirst();
 		for (int i =0; i<9; i++) {
 		float [] values= new float[columnCount-1];	//1st row is anchor
 			for (int j=0; j<columnCount-1;j++) {
@@ -257,7 +268,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	
 	public Cursor getMeasurementsInterval(long minTime, long maxTime, long subSensorId) {
 		return db.rawQuery("SELECT "+ DATABASE_TABLE_MEASUREMENT+"."+KEY_TIMESTAMP+" , "+DATABASE_TABLE_MEASUREMENT+"."+KEY_VALUE+
-				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SUBSENSOR+","+
+				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SUBSENSOR+
 				" ON "+DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+"="+subSensorId+
 				" WHERE "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+">="+Long.toString(minTime)+
 				" AND "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+"<="+Long.toString(maxTime)+

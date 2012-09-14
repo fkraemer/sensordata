@@ -19,9 +19,9 @@ import android.widget.Toast;
 
 @TargetApi(9)
 public class ChangePlatActivity extends Activity {
-
+/**
 	private DataService dataService;
-	private MyConnection myConnection;
+	private MyConnection myConnection=new MyConnection();
 	
 	private Cursor sensorCursor;
 	private Cursor platformCursor;
@@ -97,7 +97,9 @@ public class ChangePlatActivity extends Activity {
 		//getting the current Metadata from Database
 		platformCursor = dataService.getPlatform(platformId);
 		sensorCursor = dataService.getSensorsByPlatformId(platformId);
-		
+		//bind cursor lifecycle to activity
+		startManagingCursor(platformCursor);
+		startManagingCursor(platformCursor);
 		//saving Metadata locally
 		mobileNo=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_MOBILENO));
 		platformDescriptionOld=platformDescriptionNew=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_DESCR));
@@ -192,5 +194,5 @@ public class ChangePlatActivity extends Activity {
 		
 		//evntl check whether successfull, else try to re-update with old data to keep database consistent
 		finish();
-	}
+	}*/
 }

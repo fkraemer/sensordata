@@ -45,8 +45,8 @@ public abstract class DataCompression {
 		} catch (DecodeException e) {			//unreachable
 		}	
 
-		result[0] = Arrays.copyOfRange(anchorVec,0,5);	//hardcoded:leading5 ints are time stamp
-		result[1] = Arrays.copyOfRange(anchorVec,5,ANCHORLENGTH);	//hardcoded:leading5 ints are time stamp
+		result[0] = Arrays.copyOfRange(anchorVec,0,ANCHORLENGTH-SENSORCOUNT);	//hardcoded:leading5 ints are time stamp
+		result[1] = Arrays.copyOfRange(anchorVec,ANCHORLENGTH-SENSORCOUNT,ANCHORLENGTH);	//hardcoded:leading5 ints are time stamp
 		for (int i=2;i<MEASURECOUNT+1;i++)
 		{
 			for (int j=0;j<SENSORCOUNT;j++)
@@ -73,7 +73,6 @@ public abstract class DataCompression {
 
 	private static int[][] huffBinToDifs(String s, int [][] result) throws DecodeException
 	{
-		int length= SENSORCOUNT*(MEASURECOUNT-1);
 		int dpos=0;
 		int rowCount=2;		//start inserting in first dif-row
 		int columnCount=0;
@@ -94,7 +93,7 @@ public abstract class DataCompression {
 					continue;
 				} else if (code == 1001) {
 					code=Integer.valueOf(s.substring(dpos+count+1, dpos+count+11),2);
-					code*=(s.charAt(dpos+count) == '1') ? -1 : 1;
+					code*=(s.charAt(dpos+count) == '1') ? -1 : 1;							//set sign
 				} else if (code == 1002)	//error-case
 				{
 					code=0;	//for now, assume no difference
@@ -104,8 +103,6 @@ public abstract class DataCompression {
 				if (rowCount == MEASURECOUNT+1) {		//protects from result-ArrayOutOfBounce
 					throw new DecodeRecoverException("Decode-stream too long. Cutting of end.",result);
 				} else 	result[rowCount][columnCount]=code;
-				
-				
 				break;
 			}
 			
