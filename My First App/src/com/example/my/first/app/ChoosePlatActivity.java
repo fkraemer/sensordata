@@ -1,4 +1,3 @@
-
 package com.example.my.first.app;
 
 
@@ -14,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.widget.CursorAdapter;
@@ -32,13 +32,13 @@ public class ChoosePlatActivity extends Activity {
 	
 	DataService dataService;
 	ListView list;
-	Cursor curs;
-	//SimpleCursorAdapter adapter;
+	Cursor curs=null;
+	SimpleCursorAdapter adapter;
 	final CountDownLatch latch = new CountDownLatch(1);
 	MyConnection mConnect = new MyConnection(latch);
 	Context cx;
 	String[] stringList= new String[]{"a","b"};
-	boolean startedonce=false;
+	boolean wasSetOnce=false;
 
 	protected void onCreate(Bundle savedInstanceState) {
 
@@ -48,10 +48,7 @@ public class ChoosePlatActivity extends Activity {
 		
 		//setting up list
 		list= (ListView) findViewById(R.id.platList);
-
-		ArrayAdapter<String> adapter= new ArrayAdapter<String>(cx,android.R.layout.simple_list_item_single_choice,
-				stringList);
-		list.setAdapter(adapter);
+		
 		list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position,
@@ -62,62 +59,63 @@ public class ChoosePlatActivity extends Activity {
 				startActivity(intent);
 			}
 		});
-        // Bind to LocalService, happens in UI-thread, watch time delays !!
-        Intent intent =  new Intent(this, DataService.class);
-		bindService(intent, mConnect,0);
 	}
 	
 	@SuppressWarnings("deprecation") // both just since API11
 	protected void onStart() {
         super.onStart();
-		    Thread t = new Thread() {
-	        	public void run() {
-	        		startedonce=true;
-					try {
-						latch.await();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-				}
-					//dataService now has been set through mConnect
-				dataService=mConnect.getService();
-				curs = dataService.getPlatforms();
-				curs.moveToFirst();
-				startManagingCursor(curs);
-				if (curs.getCount()==0) {
-					finish();
-					onStop();
-				}
-				stringList = new String[curs.getCount()];
-				for (int i=0;i<curs.getCount();i++) {
-					stringList[i]=Long.toString(curs.getLong(curs.getColumnIndex("id")))+"   "+
-				curs.getString(curs.getColumnIndex(DatabaseControl.KEY_MOBILENO));
-				//	curs.moveToNext();
-				}
-						
-			/**	adapter = new SimpleCursorAdapter(cx, R.id.platform_entry,curs, new String[] 
-						{ DatabaseControl.KEY_MOBILENO,	DatabaseControl.KEY_ID,DatabaseControl.KEY_DESCR }, 
-						new int[] {R.id.mobile_number, R.id.id, R.id.description }); */
-			}
-
-		};
-		if (!startedonce) t.start();
+        // Bind to LocalService, happens in UI-thread, watch time delays !!
+        Intent intent =  new Intent(this, DataService.class);
+		bindService(intent, mConnect,0);
+        if (!wasSetOnce) new getPlatformsTask().execute(null,null,null);
     }
 
+	class getPlatformsTask extends AsyncTask<Void, Void, Void> {
+
+
+		@Override
+		protected Void doInBackground(Void... arg0) {
+			wasSetOnce=true;
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			// dataService now has been set through mConnect
+			dataService = mConnect.getService();
+			curs = dataService.getPlatforms();
+			startManagingCursor(curs);
+			return null;
+		}
+		//option to update progressbar via this thread
+		protected void onPostExecute(Void result) {
+			if (curs.getCount() == 0) {
+				Toast.makeText(cx, "No platforms found!", Toast.LENGTH_LONG).show();
+				finish();
+			} else {
+				adapter = new SimpleCursorAdapter(cx, R.layout.platform_entry, curs, new String[] 
+						{ DatabaseControl.KEY_MOBILENO,	DatabaseControl.KEY_ID, DatabaseControl.KEY_DESCR }, 
+						new int[] {R.id.mobile_number, R.id.id, R.id.description }); 
+				list.setAdapter(adapter);
+			}
+		}
+		       
+    }
+	
     protected void onStop() {
         super.onStop();
         // Unbind from the dataservice
         if (mConnect.isBound()) {
             unbindService(mConnect);
         }
+        wasSetOnce=false;	//flag to execute listupdate on next startup
     }
 
-	protected void onPause() {
-		super.onPause();
-	}
 
 	protected void onResume() {
 		super.onResume();
-		onStart();
+		//updating the data on resume
+		new getPlatformsTask().execute(null,null,null);
 	}
 	
 	public void backToMain(View view) {

@@ -18,12 +18,17 @@
             android:textSize="28dip" />
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="id:"
+            android:textSize="24dip" />
+
+        <TextView
             android:id="@+id/id"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="0.01"
-            android:text="id"
-            android:textSize="24dip" />
+            android:layout_weight="0.04"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
 
     </LinearLayout>
 
@@ -35,7 +40,6 @@
 		    android:id="@+id/description"
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
-		    android:text="descr"
 		    android:textSize="20dip" />
 
 	</LinearLayout>

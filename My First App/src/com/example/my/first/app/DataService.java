@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.example.sensor.data.DataCompression;
@@ -85,7 +86,7 @@ public class DataService extends Service {
 						if (received > 0) {
 							//showing successful read and save to user
 							int icon = R.drawable.notification;
-							CharSequence tickerText ="Saved "+received+" new messages";
+							CharSequence tickerText ="Saved "+((received>1) ? received+" new messages" : "1 new message");
 							long when = System.currentTimeMillis();
 							
 							//creating a new notification
@@ -152,6 +153,10 @@ public class DataService extends Service {
 	
 	//database methods, just connecting to databaseControl, called here for easy access in all activities,
 	//makes sure db.open/close is done clean
+	
+	public boolean deletePlatform(int id) {
+		return db.deletePLATFORM(id);
+	}
 
 	public Cursor getPlatform(long platformId) {
 		return db.getPlatform((int) platformId);
@@ -173,6 +178,11 @@ public class DataService extends Service {
 		return db.updateSensor(id, offX, offY, offZ, platformId);
 		
 	}
+	
+	public long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr) {
+		return db.insertPlatform(lat, lon, elev,period, mobileNo, descr);
+	}
+	
 	
 	//helper methods:
 	//****************************************************************************************************
@@ -266,12 +276,14 @@ public class DataService extends Service {
 		int count = curs.getCount();
 		data = new String[count];
 		numbers = new String[count];
+		//preparing String to log the data, first raw messages, then mark them while decoding
+		String[] logString = new String[count];
 		String[] searchNumbers = new String[count];
 		//interestCount counts how many of the read sms are actually sensor-messages we care about
 		int interestCount = 0;
 		//reading sms from phone
 		if (curs.moveToFirst()) {
-			for (int i = 0; i < 1; i++) {  //<curs.getCount()  //TODO debug mode !!!!!!!!!!!
+			for (int i = 0; i < curs.getCount(); i++) {
 				try {
 					//checking sender mobile number against the numbers of interest:
 					searchNumbers[i] = curs.getString(curs.getColumnIndex("address"));
@@ -287,7 +299,8 @@ public class DataService extends Service {
 						data[interestCount] = curs.getString(curs.getColumnIndex("body"));
 						//save and remove from phone
 						String id=curs.getString(curs.getColumnIndex("_id"));
-						logSms(curs.getString(curs.getColumnIndex("date"))+"/"+numbers[interestCount] + "/" + data[interestCount]);
+						logString[interestCount]=((new SimpleDateFormat().format(curs.getLong(curs.getColumnIndex("date")))))
+								+"|"+numbers[interestCount] + "|" + data[interestCount];
 						cx.getContentResolver().delete(Uri.parse("content://sms"), "_id=?", new String[] {id});
 						interestCount++;
 					}
@@ -308,13 +321,17 @@ public class DataService extends Service {
 			
 			try {
 				//decoding data
-				sensorData = DataCompression.decode(data[i]);				
+				sensorData = DataCompression.decode(data[i]);
+				//for logging
+				logSms(logString[i]+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"+sensorData[0][4]+":"+sensorData[0][5]+":"+"|ok");
 			} catch (DecodeFatalException e) {
 				fatalCount++;
 				continue;	//starts with next sms
 			}catch (DecodeRecoverException e) {
 				//recoeverd data is saved in the exception
 				sensorData = ((DecodeRecoverException) e).getDataInts();
+				//for logging
+				logSms(logString[i]+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"+sensorData[0][4]+":"+sensorData[0][5]+":"+"|"+e.toString());
 			} catch (DecodeException e) {			//unreachable
 			}
 			//try to find existing platform with this mobileNo, if several take the latest //TODO
@@ -322,17 +339,13 @@ public class DataService extends Service {
 			if (platformId == -1) {
 				//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 					int period = sensorData[0][0];   //getting period from decoded data
-					db.insertPlatformToSubsensorWithoutMetadata(period,	numbers[i],"");
+					db.insertPlatformDefault(0, 0, 0, period, numbers[i], "");	//inserting without metadata, this creates the necessary subsensors
 				}
+				//subsensors and snesors must have been created for putMeasurements
 				db.putMeasurements(sensorData, (int) platformId);
 			
 		}
 		return interestCount-fatalCount;
 	}
-
-
-
-
-
 }
 

@@ -101,7 +101,7 @@ public abstract class DataCompression {
 					errorCount++;
 				}
 				if (rowCount == MEASURECOUNT+1) {		//protects from result-ArrayOutOfBounce
-					throw new DecodeRecoverException("Decode-stream too long. Cutting of end.",result);
+					throw new DecodeRecoverException("Decode-stream too long. Cutting of "+(s.length()-dpos)+" chars.",result);
 				} else 	result[rowCount][columnCount]=code;
 				break;
 			}

@@ -22,7 +22,7 @@ public class DatabaseControl {
 
 
 
-	public static final String KEY_ID = "id";
+	public static final String KEY_ID = "_id";
 	
 	private final static String DATABASE_TABLE_PLATFORM="platform";	// has KEY_ID
 	public static final String KEY_LAT= "lat";
@@ -56,7 +56,6 @@ public class DatabaseControl {
 	public static final String KEY_MIN = "min";
 	public static final String KEY_MAX = "max";
 	
-	public static final String ENGINE="InnoDB"; 
 	
 	
 	private DatabaseHelper dbHelper;
@@ -76,7 +75,7 @@ public class DatabaseControl {
 private static class DatabaseHelper extends SQLiteOpenHelper {
 
 	private final static String DATABASE_NAME="localsensorDB";
-	private final static int DATABASE_VERSION=3;
+	private final static int DATABASE_VERSION=1;
 	
 	private static final String PLATFORM_CREATE="CREATE  TABLE IF NOT EXISTS " + DATABASE_TABLE_PLATFORM + " ( " +
 			KEY_ID+" INTEGER PRIMARY KEY AUTOINCREMENT,  "+ KEY_LAT +" INTEGER  ,  "+ KEY_LON +" INTEGER  ,  "+ KEY_ELEV +
@@ -114,6 +113,10 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 				db.execSQL(SUBSENSOR_CREATE);
 				db.execSQL(MEASUREMENT_CREATE);
 				db.execSQL(PENOMENA_CREATE);
+				if (!db.isReadOnly()) {
+		            // Enable foreign key constraints
+		            db.execSQL("PRAGMA foreign_keys=ON;");
+		        }
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -122,11 +125,11 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldT, int newT) {
 		Log.w("dberror","upgrading from " + oldT + " to "+ newT + ". this drops all data");
-		db.execSQL("DROP TABLE IF EXISTS platform"); // normally copy first, drop then
-		db.execSQL("DROP TABLE IF EXISTS sensor"); // normally copy first, drop then
-		db.execSQL("DROP TABLE IF EXISTS subsensor"); // normally copy first, drop then
-		db.execSQL("DROP TABLE IF EXISTS measuremen"); // normally copy first, drop then
-		db.execSQL("DROP TABLE IF EXISTS phenomena"); // normally copy first, drop then
+		db.execSQL("DROP TABLE IF EXISTS " +DATABASE_TABLE_PLATFORM); // normally copy first, drop then
+		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE_SENSOR); // normally copy first, drop then
+		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE_SUBSENSOR); // normally copy first, drop then
+		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE_PHENOMENA); // normally copy first, drop then
+		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE_MEASUREMENT); // normally copy first, drop then
 		this.onCreate(db);
 		}
 	}	
@@ -154,14 +157,13 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 			insertPhenomena("V", 0, 8);					//id:3
 		}
 	}
-	
 	//TODO  test creating database, fill with some test data
 	//insert phenomenas by default
 	// create inserting methods
 	//create query methods. using query, rawquery or sqlitequerybuilder
 	
 	//helper-method for getting rows of all tables with Ids
-	public Cursor getRowById(int id, String selectedTable) throws SQLException {
+	private Cursor getRowById(int id, String selectedTable) throws SQLException {
 		Cursor myCursor = db.query(selectedTable, null,
 				KEY_ID + "=" + id,null,null,null,null);
 		if (myCursor != null) {
@@ -204,11 +206,9 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return result;
 	}
 	
-	//this inserts a platform, 4sensors, 9 subsensors in a default manner,
-	//with all Metadata set to 0 except period and mobileNo, which are the minimum required data
-	// for the database to work properly
-	public long insertPlatformToSubsensorWithoutMetadata(int period, String mobileNo,String descr) {
-		long platformId = insertPlatform(0, 0, 0, period, mobileNo,descr);
+	//this inserts a platform, 4sensors, 9 subsensors in a default manner
+	public long insertPlatformDefault(int lat, int lon, int elev, int period, String mobileNo,String descr) {
+		long platformId = insertPlatform(lat, lon, elev, period, mobileNo,descr);
 		for (int i=0;i<4;i++)
 			{
 			long sensorId=insertSensor(0, 0, 0,(int) platformId);
@@ -279,7 +279,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	
 	//--------------------------------------------------------------------------------------------------------------------------------
 	//methods for insertion into database
-	private long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr)
+	public long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_LAT, lat);
@@ -293,17 +293,16 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	
 	public boolean updatePlatform(int id, int lon, int lat, int elev,int period, String mobileNo, String descr) {
 		ContentValues cont = new ContentValues();
-		cont.put(KEY_ID, id);
 		cont.put(KEY_LAT, lat);
 		cont.put(KEY_LON, lon);
 		cont.put(KEY_ELEV, elev);
 		cont.put(KEY_PERIOD, period);
 		cont.put(KEY_MOBILENO, mobileNo);
 		cont.put(KEY_DESCR, descr);
-		return db.update(DATABASE_TABLE_PLATFORM, cont, KEY_ID + "+" + id, null) > 0;
+		return db.update(DATABASE_TABLE_PLATFORM, cont, KEY_ID + "=" + id, null) > 0;
 	}
 
-	private boolean deletePLATFORM(int id) {
+	public boolean deletePLATFORM(int id) {
 		return db.delete(DATABASE_TABLE_PLATFORM, KEY_ID + "=" + id,null) > 0;
 	}
 		
@@ -323,12 +322,11 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 
 	public boolean updateSensor(int id, int offX, int offY, int offZ, int platform_id) {
 		ContentValues cont = new ContentValues();
-		cont.put(KEY_ID, id);
 		cont.put(KEY_OFFX, offX);
 		cont.put(KEY_OFFY, offY);
 		cont.put(KEY_OFFZ, offZ);
 		cont.put(KEY_PLATFORMID, platform_id);
-		return db.update(DATABASE_TABLE_SENSOR, cont, KEY_ID + "+" + id, null) > 0;
+		return db.update(DATABASE_TABLE_SENSOR, cont, KEY_ID + "=" + id, null) > 0;
 	}
 	
 	private boolean deleteSensor(int id) {
@@ -351,10 +349,9 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	public boolean updateSubsensor(int id, int phenomenaId, int sensorId)
 	{
 		ContentValues cont = new ContentValues();
-		cont.put(KEY_ID, id);
 		cont.put(KEY_SENSORID, sensorId);
 		cont.put(KEY_PHENOMENAID, phenomenaId);
-		return db.update(DATABASE_TABLE_SUBSENSOR, cont, KEY_ID + "+" + id, null) > 0;
+		return db.update(DATABASE_TABLE_SUBSENSOR, cont, KEY_ID + "=" + id, null) > 0;
 	}
 	
 	
@@ -384,7 +381,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		cont.put(KEY_UNIT, unit);
 		cont.put(KEY_MIN, min);
 		cont.put(KEY_MAX, max);
-		return db.update(DATABASE_TABLE_PHENOMENA, cont, KEY_ID + "+" + id, null) > 0;
+		return db.update(DATABASE_TABLE_PHENOMENA, cont, KEY_ID + "=" + id, null) > 0;
 	}
 	
 	private boolean deletePhenomena(int id) {
