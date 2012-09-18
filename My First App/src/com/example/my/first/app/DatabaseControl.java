@@ -220,7 +220,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 
 	public Cursor getAllPlatforms() throws SQLException {
-		Cursor curs = db.query(DATABASE_TABLE_PLATFORM, null, null, null,null,null,KEY_MOBILENO + "ASC , "+KEY_ID+" ASC");
+		Cursor curs = db.query(DATABASE_TABLE_PLATFORM, null, null, null,null,null,KEY_MOBILENO + " ASC , "+KEY_ID+" ASC");
 		curs.moveToFirst();
 		return curs;
 	}
@@ -245,7 +245,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		c.set(data[0][1]+2000, data[0][2]-1, data[0][3], data[0][4], data[0][5]);
 		long timestamp=c.getTimeInMillis();
 		long timeOffset = data[0][0];
-		for (int i = 0; i < rowCount; i++) {
+		for (int i = 0; i < rowCount-1; i++) {
 			times[i] = timestamp + timeOffset * i;
 		}
 		
@@ -256,12 +256,13 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 				" ON "+DATABASE_TABLE_PLATFORM+"."+KEY_ID+"="+DATABASE_TABLE_SENSOR+"."+KEY_PLATFORMID+
 				" AND "+DATABASE_TABLE_SENSOR+"."+KEY_ID+"="+DATABASE_TABLE_SUBSENSOR+"."+KEY_SENSORID, null);
 		curs.moveToFirst();
-		for (int i =0; i<9; i++) {
-		float [] values= new float[columnCount-1];	//1st row is anchor
-			for (int j=0; j<columnCount-1;j++) {
-				values[j]=data[j][i] /10;	// dividing by 10! column becomes row to be inserted into database
+		for (int i =0; i<columnCount; i++) {
+		float [] values= new float[rowCount-1];	//1st row is anchor
+			for (int j=1; j<rowCount;j++) {
+				values[j-1]=data[j][i] / 10;	// dividing by 10! column becomes row to be inserted into database
 			}
 			insertMeasurement((int) curs.getLong(0),values , times);
+			curs.moveToNext();
 		}
 	}
 	
@@ -397,25 +398,22 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		
 	private void insertMeasurement(int subsensorId, float [] values, long [] timestamps) {
 		ContentValues val;
-		//long [] result = new long[values.length];
 		for (int i=0; i<values.length; i++) {
 			val= new ContentValues();
 			val.put(KEY_SUBSENSORID, subsensorId);
 			val.put(KEY_VALUE, values[i]);
 			val.put(KEY_TIMESTAMP, timestamps[i]);
 			try {
-			//result[i]= 
 				db.insert(DATABASE_TABLE_MEASUREMENT, null, val);
 			} catch (SQLException e) {
 				Log.w("dbwarning","something went wrong when inserting data");
 				e.printStackTrace();
 			}
 		}
-		//return result;
 	}
 	
 	public Cursor getMeasurement() {
-		return db.query(DATABASE_TABLE_MEASUREMENT,new String[] {KEY_ID,KEY_VALUE,KEY_TIMESTAMP},
+		return db.query(DATABASE_TABLE_MEASUREMENT,new String[] {KEY_SUBSENSORID,KEY_VALUE,KEY_TIMESTAMP},
 				null,null,null,null,null);
 	}
 }

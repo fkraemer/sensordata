@@ -22,20 +22,23 @@ import android.view.ViewGroup;
 import android.webkit.WebView.FindListener;
 import android.widget.AdapterView;
 import android.widget.AdapterViewFlipper;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
 
 public class ChoosePlatActivity extends Activity {
 	
 	DataService dataService;
-	boolean mBound ;
-	MyConnection myConnection = new MyConnection();
 	ListView list;
 	Cursor curs;
-	SimpleCursorAdapter adapter;
+	//SimpleCursorAdapter adapter;
 	final CountDownLatch latch = new CountDownLatch(1);
+	MyConnection mConnect = new MyConnection(latch);
 	Context cx;
+	String[] stringList= new String[]{"a","b"};
+	boolean startedonce=false;
 
 	protected void onCreate(Bundle savedInstanceState) {
 
@@ -45,76 +48,66 @@ public class ChoosePlatActivity extends Activity {
 		
 		//setting up list
 		list= (ListView) findViewById(R.id.platList);
+
+		ArrayAdapter<String> adapter= new ArrayAdapter<String>(cx,android.R.layout.simple_list_item_single_choice,
+				stringList);
+		list.setAdapter(adapter);
 		list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position,
 					long id) {
 				curs.moveToPosition(position);
 				Intent intent = new Intent(getApplicationContext(), ChangePlatActivity.class);
-				intent.putExtra("platformId", curs.getLong(0));
+				intent.putExtra("platformId", curs.getLong(0)); //sending platformId to the new activity
 				startActivity(intent);
-				// TODO Auto-generated method stub
 			}
 		});
-        // Bind to LocalService	
+        // Bind to LocalService, happens in UI-thread, watch time delays !!
         Intent intent =  new Intent(this, DataService.class);
-		bindService(intent, myConnection,0);
+		bindService(intent, mConnect,0);
 	}
-	
-	/** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection mConnection = new ServiceConnection() {
-
-        public void onServiceConnected(ComponentName className,
-                IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            LocalBinder binder = (LocalBinder) service;
-            dataService = binder.getService();
-            mBound = true;
-            latch.countDown();
-        }
-
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
 	
 	@SuppressWarnings("deprecation") // both just since API11
 	protected void onStart() {
         super.onStart();
-		boolean con =false;
-		    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		    for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-		        if ("com.example.my.first.app.DataService".equals(service.service.getClassName())) {
-		            con=true;
-		        } 
-		    } 
-
-		
 		    Thread t = new Thread() {
 	        	public void run() {
+	        		startedonce=true;
 					try {
 						latch.await();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 				}
-					//doesnt rech this point
-				dataService=myConnection.getService();
+					//dataService now has been set through mConnect
+				dataService=mConnect.getService();
 				curs = dataService.getPlatforms();
+				curs.moveToFirst();
 				startManagingCursor(curs);
-				adapter = new SimpleCursorAdapter(cx, R.id.platform_entry,curs, new String[] { DatabaseControl.KEY_MOBILENO,DatabaseControl.KEY_ID,
-								DatabaseControl.KEY_DESCR }, new int[] {R.id.mobile_number, R.id.id, R.id.description });
-				list.setAdapter(adapter);
+				if (curs.getCount()==0) {
+					finish();
+					onStop();
+				}
+				stringList = new String[curs.getCount()];
+				for (int i=0;i<curs.getCount();i++) {
+					stringList[i]=Long.toString(curs.getLong(curs.getColumnIndex("id")))+"   "+
+				curs.getString(curs.getColumnIndex(DatabaseControl.KEY_MOBILENO));
+				//	curs.moveToNext();
+				}
+						
+			/**	adapter = new SimpleCursorAdapter(cx, R.id.platform_entry,curs, new String[] 
+						{ DatabaseControl.KEY_MOBILENO,	DatabaseControl.KEY_ID,DatabaseControl.KEY_DESCR }, 
+						new int[] {R.id.mobile_number, R.id.id, R.id.description }); */
 			}
 
 		};
-		t.start();
+		if (!startedonce) t.start();
     }
 
     protected void onStop() {
         super.onStop();
         // Unbind from the dataservice
-        if (mBound) {
-            unbindService(mConnection);
+        if (mConnect.isBound()) {
+            unbindService(mConnect);
         }
     }
 

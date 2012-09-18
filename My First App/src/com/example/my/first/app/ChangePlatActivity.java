@@ -2,6 +2,7 @@ package com.example.my.first.app;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -12,19 +13,23 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
+import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
 @TargetApi(9)
 public class ChangePlatActivity extends Activity {
-/**
+
 	private DataService dataService;
-	private MyConnection myConnection=new MyConnection();
 	
 	private Cursor sensorCursor;
 	private Cursor platformCursor;
+
+	private final CountDownLatch latch = new CountDownLatch(1);
+	private MyConnection mConnect = new MyConnection(latch);
 	
 	private long platformId;
 	private long currentSensorId;
@@ -45,12 +50,14 @@ public class ChangePlatActivity extends Activity {
 	private String platformDescriptionNew;
 	private int[] platformMetadataOld=new int[4];	//{period,longitude,latitude,elevation}
 	private int[] platformMetadataNew=new int[4];
-	private static final String[] sensorList = new String[] {"Sensor 1","Sensor 2","Sensor 3", "Sensor 4"};
+	private static final String[] sensorList = new String[] 
+			{"Sensor 1","Sensor 2","Sensor 3", "Sensor 4"};
 	private int activeSensor=0;
 	private long[] sensorIds=new long[4];
 	private int[] sensorMetadataOld=new int[12];
 	private int[] sensorMetadataNew=new int[12];
-	private ArrayAdapter<String> adapter;
+	private SimpleExpandableListAdapter adapter;
+	private boolean startedonce=false;
 	
 	
 	protected void onCreate(Bundle savedInstanceState) {
@@ -64,10 +71,14 @@ public class ChangePlatActivity extends Activity {
 		editLatitude = (EditText) findViewById(R.id.editText41);
 		editElevation = (EditText) findViewById(R.id.editText51);
 		editDescription = (EditText) findViewById(R.id.editText61);
-		list = (ExpandableListView) findViewById(R.id.sensorList);
-		adapter= new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_single_choice,sensorList); 		
-		list.setAdapter(adapter);
-		list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+		//list = (ExpandableListView) findViewById(R.id.sensorList);
+		//adapter= new SimpleExpandableListAdapter(getApplicationContext(),Arrays.asList(sensorList),android.R.layout.simple_dropdown_item_1line,null,null,null,null,null,null);
+		
+				
+				//)<String>(getApplicationContext(),
+				//android.R.layout.simple_list_item_single_choice,sensorList); 		
+		//list.setAdapter(adapter);
+		/**list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position,
 					long arg3) {
@@ -76,22 +87,37 @@ public class ChangePlatActivity extends Activity {
 				setSensorMetadata();
 				}
 			
-		});
+		});*/
 		editSensorLongitude= (EditText) findViewById(R.id.editText101);
 		editSensorLatitude= (EditText) findViewById(R.id.editText111);
 		editSensorElevation= (EditText) findViewById(R.id.editText121);
+		
+
+		//getting the platform to work on
+		Bundle extras =getIntent().getExtras();
+		platformId=extras.getLong("platformId");
+
+		//connecting to dataService
+		Intent intent =  new Intent(this, DataService.class);
+		bindService(intent, mConnect, 0);	
 	}
 	
 	@Override
 	protected void onStart() {
-		//getting the platform to work with
-		Bundle extras =getIntent().getExtras();
-		platformId=extras.getLong("platformId");
-
-		//connecting to dataServicto be displayede
-		Intent intent =  new Intent(this, DataService.class);
-		bindService(intent, myConnection, this.BIND_AUTO_CREATE);	
-		dataService=myConnection.getService();
+		super.onStart();
+		
+		
+		
+		   Thread t = new Thread() {
+	        	public void run() {
+	 			   startedonce=true;
+					try {
+						latch.await();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+				}
+					//dataService now has been set through mConnect
+				dataService=mConnect.getService();
 		
 		
 		//getting the current Metadata from Database
@@ -121,13 +147,17 @@ public class ChangePlatActivity extends Activity {
 		//displaying Metadata
 		setPlatformMetadata();
 		setSensorMetadata();
+	        	}
+		   };
+	       if (!startedonce) t.start();
+		
 	}
 	
     protected void onStop() {
         super.onStop();
         // Unbind from the dataservice
-        if (myConnection.isBound()) {
-            unbindService(myConnection);
+        if (mConnect.isBound()) {
+            unbindService(mConnect);
         }
     }
 
@@ -191,8 +221,8 @@ public class ChangePlatActivity extends Activity {
 		for (int i=0;i<4;i++) {
 			dataService.updateSensor((int) sensorIds[i], sensorMetadataNew[i*3], sensorMetadataNew[i*3+1], sensorMetadataNew[i*3+2],(int) platformId);
 		}
-		
+		//prompt whether to update or insert new on different changed metadata
 		//evntl check whether successfull, else try to re-update with old data to keep database consistent
 		finish();
-	}*/
+	}
 }

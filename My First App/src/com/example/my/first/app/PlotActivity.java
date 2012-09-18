@@ -65,7 +65,6 @@ public class PlotActivity extends Activity {
 
 		Bundle extras =getIntent().getExtras();
 		ArrayList<DataSet> selected=extras.getParcelableArrayList("selected");
-		//TODO make sure right order: the most recent messages have the lower index
 
 		setContentView(R.layout.plot);
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
@@ -107,11 +106,8 @@ public class PlotActivity extends Activity {
 		temperatureSimpleXYPlot.setRangeLabel("Temperature");
 		temperatureSimpleXYPlot.setDomainLabel("Time");
 		temperatureSimpleXYPlot.disableAllMarkup();
-		//TODO make grid flexible, move with zoom/scroll
 		temperatureSimpleXYPlot.setRangeStep(XYStepMode.INCREMENT_BY_VAL,  1);
 		temperatureSimpleXYPlot.setDomainStep(XYStepMode.INCREMENT_BY_VAL,  60*60*1000);			//set grid line difference with 1hour difference
-
-		//		storage.getDatabyLocalId(selected.get(0)).getTimeOffset().toMillis(true) / 3600000);
 
 		moistureSimpleXYPlot.getGraphWidget().setTicksPerRangeLabel(2);
 		moistureSimpleXYPlot.getGraphWidget().setTicksPerDomainLabel(2);
@@ -140,13 +136,14 @@ public class PlotActivity extends Activity {
 					timeColumn[i] = timeStamp + timeOffset * i + k * timeOffset * 24;	//TODO dont hardcode measure count or change to  individual timeStamps
 				}
 
+				//setting up the lines
 				XYSeries tempSeries = new SimpleXYSeries(
 						Arrays.asList(timeColumn), Arrays.asList(tempColumn),
 						"Temperature Series");
 				XYSeries moistSeries = new SimpleXYSeries(
 						Arrays.asList(timeColumn), Arrays.asList(moistColumn),
 						"Moisture Series");
-
+				
 				int colour = 0;
 				switch (j) {
 				case 0:
@@ -183,6 +180,7 @@ public class PlotActivity extends Activity {
 		float ABS_X_MAX;
 		float MAX_X_DISTANCE;	
 
+		//getting the max/min points
 		temperatureSimpleXYPlot.calculateMinMaxVals();
 		minXY=new PointF(temperatureSimpleXYPlot.getCalculatedMinX().floatValue(),
 				temperatureSimpleXYPlot.getCalculatedMinY().floatValue());
@@ -191,14 +189,14 @@ public class PlotActivity extends Activity {
 		float dif=maxXY.y-minXY.y; //setting the maximum shown y-range to be a minimum range of 15
 		if (dif<15) {
 			dif=15-dif;
-		} else dif=5;
+		} else dif=5;	//otherwise just add 2.5 on both sides
 		ABS_Y_MIN=minXY.y-dif/2;
 		ABS_Y_MAX=maxXY.y+dif/2;
 		MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
 		temperatureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
-
+		//saetting the absolute borders of the plot
 		ABS_X_MIN=minXY.x;
-		ABS_X_MAX=maxXY.x;
+		ABS_X_MAX=maxXY.x;	//shown time(y-axis) becomes a maximum of 48hours
 		MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<48.0f*60*60*1000) ? (ABS_X_MAX-ABS_X_MIN) : 48.0f*60*60*1000;
 		temperatureSimpleXYPlot.setDomainBoundaries(minXY.x,maxXY.x, BoundaryMode.FIXED);	//start with most recent (max 48)hours
 

@@ -42,92 +42,86 @@ import android.widget.Toast;
  * interacts with the online database, also saving the data there.
  * It queries the local and online database, saves the data to be
  * plotted locally and provides it to the plotActivity when bind by it. 
- *
  */
 public class DataService extends Service {
 
-		private boolean receivedNewSms=false;
+		private boolean receivedNewSms=false; //flag, that update to global db is necessary, false for very first start, is updated then
 	    private final IBinder mBinder = new LocalBinder();
 		private Context cx;
 		private String[] data = new String[0];
 		private String[] numbers = new String[0];
-		private String[] adapterFill = new String[0];
 		private Thread checkSmsThread;
 		private DatabaseControl db;
 		private NotificationManager mNotificationManager;
 		
 		
-	public DataService() {
-		//TODO get old state from file
-	}
 
 	@Override
 	public void onCreate() {
-		//setup as it was before
-		getStateFromFile();
 		cx =getApplicationContext();
 		mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		//setup as it was before
+		getStateFromFile();
 
 		//opening database
 		db = new DatabaseControl(cx);
 		db.open();
-			
-			//starting periodical check for new SMS
-			checkSmsThread = new Thread() {
-				@SuppressWarnings("deprecation") //since deprecated for API 11 (new notification builder), but no workaround for API 9
-				public void run() {
-					while (!isInterrupted()) {
-						try {
-							boolean justonce=false;		//TODO, just for debug, allowing for just one sms to be read
-							int received=0;
-							if (!justonce) received=getSms(cx);
-							if (received > 0) {
-								justonce=true;
-								//showing successful read and save to user
-								
-								int icon = R.drawable.notification;
-								CharSequence tickerText ="Saved "+received+" new messages";
-								long when = System.currentTimeMillis();
-								
-								Notification notification = new Notification(icon, tickerText, when);
-								
-								CharSequence contentTitle = "Sensordata";
-								CharSequence contentText = tickerText;
-								Intent notificationIntent = new Intent();
-								PendingIntent contentIntent = PendingIntent.getActivity(cx, 0, notificationIntent, 0);
-
-								notification.setLatestEventInfo(cx, contentTitle, contentText, contentIntent);
-
-								mNotificationManager.notify(1, notification);
-								receivedNewSms=true;
-							}
-							sleep(50000);
-						} catch (InterruptedException e) {
-							interrupt();
+		//test
+		Cursor curs = db.getAllPlatforms();
+		Toast.makeText(cx, "platforms: "+curs.getPosition()+" count: "+curs.getCount(), Toast.LENGTH_SHORT).show();
+		curs = db.getMeasurement();
+		Toast.makeText(cx, "number of measurements: "+curs.getCount(), Toast.LENGTH_LONG).show();
+	//	Toast.makeText(cx, "Inhalt: "+curs.getLong(curs.getColumnIndex("id")), Toast.LENGTH_LONG).show();
+		
+		//starting periodical check for new SMS
+		checkSmsThread = new Thread() {
+			@SuppressWarnings("deprecation") //since deprecated for API 11 (new notification builder), but no workaround for API 9
+			public void run() {
+				while (!isInterrupted()) {
+					try {
+						boolean justonce=false;		//TODO, just for debug, allowing for just one sms to be read
+						int received=0;
+						received=getSms(cx);
+						if (received > 0) {
+							//showing successful read and save to user
+							int icon = R.drawable.notification;
+							CharSequence tickerText ="Saved "+received+" new messages";
+							long when = System.currentTimeMillis();
+							
+							//creating a new notification
+							Notification notification = new Notification(icon, tickerText, when);
+							CharSequence contentTitle = "Sensordata";
+							CharSequence contentText = tickerText;
+							Intent notificationIntent = new Intent();
+							PendingIntent contentIntent = PendingIntent.getActivity(cx, 0, notificationIntent, 0);
+							notification.setLatestEventInfo(cx, contentTitle, contentText, contentIntent);
+							mNotificationManager.notify(1, notification);	//show it
+							receivedNewSms=true; 
 						}
+						//only check every XX millisecs
+						sleep(MainActivity.CHECK_SMS_PERIOD);
+					} catch (InterruptedException e) {
+						interrupt();
 					}
 				}
-			};
-			
-			checkSmsThread.start();
-			
-					
-
+			}
+		};
+		checkSmsThread.start();
 	}
 
+	//cleaning up on ending
 	@Override
 	public void onDestroy() {
 		checkSmsThread.interrupt();
-		saveStateToFile();
+		saveStateToFile();		//can be read on next startup
 		db.close();
-		mNotificationManager.cancel(1);
+		mNotificationManager.cancel(1);		//destroying the notification we set before
 		super.onDestroy();
 	}
 	
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		// TODO Auto-generated method stub
 		return START_STICKY;
 	}
 
@@ -135,13 +129,13 @@ public class DataService extends Service {
 	/**
 	 * provides the following methods:
 	 * set whether to connect to the internet or not
-	 * connect to database   -  updates global database (evntl local database also)
+     * updates global database (evntl local database also)
 	 * querying data, by mobileNo, by timeIntervall
-	 * saving values/timestamps with platformId after query    - get number of values
 	 * get saved values (to plot them)
 	 */
 
 	
+	//necessary to let activities bind to the service:
 	public IBinder onBind(Intent arg0) {
 		return mBinder;
 	}
@@ -154,6 +148,10 @@ public class DataService extends Service {
 	
 	//****************************************************************************************************
 	//public methods used by bound activities
+	
+	
+	//database methods, just connecting to databaseControl, called here for easy access in all activities,
+	//makes sure db.open/close is done clean
 
 	public Cursor getPlatform(long platformId) {
 		return db.getPlatform((int) platformId);
@@ -179,18 +177,8 @@ public class DataService extends Service {
 	//helper methods:
 	//****************************************************************************************************
 	
+	//logging the read SMS to a file on the sd-card, must be allowed in manifest
 	public void logSms(String write) {
-
-		boolean mExternalStorageAvailable = false;
-		boolean mExternalStorageWritable = false;
-		String state = Environment.getExternalStorageState();
-
-		if (Environment.MEDIA_MOUNTED.equals(state)) {
-			mExternalStorageAvailable = mExternalStorageWritable = true;
-		} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-			mExternalStorageAvailable = true;
-			mExternalStorageWritable = false;
-		}
 
 		String FILENAME = "smsdata";
 		try {
@@ -204,9 +192,10 @@ public class DataService extends Service {
 	}
 
 	/**
-	 * The lastState should look like this
+	 * Reading state before last shutdown:
+	 * The lines of lastState should look like this
 	 * [0]:(0-false/1-true)(receivednewSms),
-	 * [1]:
+	 * [1]:numbers of interest //TODO
 	 * [2]:
 	 * [3]:
 	 * [4]:
@@ -217,38 +206,40 @@ public class DataService extends Service {
 		String [] stringStore=new String[5];
 		try {
 			in = new BufferedReader(new InputStreamReader(openFileInput("lastState")));
-		
-		//String string=in.readLine();		//not using/dismissing first line, should be used for ringbuffer sort of file
-		int count=0;
-		String string=null;
-		while ((string=in.readLine())!=null) {
-			stringStore[count]=string;
-		}
-		in.close();
+			//reading line by line
+			int count=0;
+			String string=null;
+			while ((string=in.readLine())!=null) {
+				stringStore[count] = string;
+				count++;
+			}
+			in.close();
 		} catch (FileNotFoundException e1) {
-			saveStateToFile(); //called at the very first startup if file doesnt exist already
+			saveStateToFile(); // called at the very first startup if file doesnt exist already
 			e1.printStackTrace();
-			return;
+			return;	//then exiting here, cause
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
 		
-		//working with the read data, might want to catch indexoutofbound
+		//working with the read data and the expected scheme
 		if (stringStore[0]!=null) {
 			receivedNewSms = (stringStore[0].charAt(0)!='0');	//sets false if 0, true if 1
 		}
 
 	}
 	
+	
+	//saving the state before shutdown
 	public void saveStateToFile() {
 		String [] stringStore=new String[5];
 		//preparing data to be written
 		stringStore[0]=(new char[]{((receivedNewSms) ? '1' : '0'),'\n'}).toString(); //puts a 1 for receivedSms==true
-		
-		
+	
 		//writing data to file
 		BufferedWriter out;
 		try {
+			//MODE_PRIVATE creates file, if it does not exist now
 			out = new BufferedWriter(new OutputStreamWriter(openFileOutput(	"lastState", MODE_PRIVATE))); // mode_private overwrites old file
 			for (int i = 0; i < 5; i++) {
 				out.write(stringStore[i]);
@@ -263,22 +254,26 @@ public class DataService extends Service {
 
 	}
 	
+	//getSms checks for new Sms of Numbers_of_interest senders
+	//these are logged, decoded, saved into the database and then deleted from the phone-inbox
+	//returns the number of SMS that have been successful decoded and saved to the db
 	@TargetApi(9)
 	public int getSms(Context cx) {
+		//opening inbox:
 		Uri smsInbox=Uri.parse("content://sms/inbox");
 		Cursor curs = cx.getContentResolver().query(
 				smsInbox, null, null, null, null);
-
 		int count = curs.getCount();
 		data = new String[count];
 		numbers = new String[count];
 		String[] searchNumbers = new String[count];
+		//interestCount counts how many of the read sms are actually sensor-messages we care about
 		int interestCount = 0;
-
 		//reading sms from phone
 		if (curs.moveToFirst()) {
 			for (int i = 0; i < 1; i++) {  //<curs.getCount()  //TODO debug mode !!!!!!!!!!!
 				try {
+					//checking sender mobile number against the numbers of interest:
 					searchNumbers[i] = curs.getString(curs.getColumnIndex("address"));
 					boolean check = false;
 					for (int j = 0; j < MainActivity.NUMBERSOFINTEREST.length; j++) {
@@ -305,10 +300,8 @@ public class DataService extends Service {
 		}
 		curs.close();
 		
-		//decoding sms
+		//decoding sms, fatalCount counts the fatalerrors, sms that could not be decoded
 		int fatalCount=0;
-
-		
 		for (int i=0; i <interestCount; i++) 
 		{
 			int [][] sensorData = null;
@@ -318,20 +311,21 @@ public class DataService extends Service {
 				sensorData = DataCompression.decode(data[i]);				
 			} catch (DecodeFatalException e) {
 				fatalCount++;
-				continue;
+				continue;	//starts with next sms
 			}catch (DecodeRecoverException e) {
+				//recoeverd data is saved in the exception
 				sensorData = ((DecodeRecoverException) e).getDataInts();
 			} catch (DecodeException e) {			//unreachable
 			}
-			if (sensorData != null) {
-				long platformId = db.putPlatform(numbers[i]);
-				if (platformId == -1) {
-					//TODO start translucent activity, ask user for metadata, e.g. GPS and description
-					int period = sensorData[0][0];   //getting period from decoded data, must be new version!
+			//try to find existing platform with this mobileNo, if several take the latest //TODO
+			long platformId = db.putPlatform(numbers[i]);
+			if (platformId == -1) {
+				//TODO start translucent activity, ask user for metadata, e.g. GPS and description
+					int period = sensorData[0][0];   //getting period from decoded data
 					db.insertPlatformToSubsensorWithoutMetadata(period,	numbers[i],"");
 				}
 				db.putMeasurements(sensorData, (int) platformId);
-			}
+			
 		}
 		return interestCount-fatalCount;
 	}

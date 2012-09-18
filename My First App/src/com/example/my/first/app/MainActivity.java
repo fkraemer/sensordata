@@ -8,7 +8,10 @@ import android.widget.Button;
 
 public class MainActivity extends Activity {
 
-	public final static String[] NUMBERSOFINTEREST = { "+61431220285","+61415361829" };
+	//sets numbers to be recognized as platformnumbers
+	public static final String[] NUMBERSOFINTEREST = { "+61431220285","+61415361829" };//TODO
+	//sets the time between to checks of the inbox:
+	public static final int CHECK_SMS_PERIOD = 60000;
 
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
