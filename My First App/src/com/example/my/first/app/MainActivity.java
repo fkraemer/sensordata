@@ -13,15 +13,16 @@ public class MainActivity extends Activity {
 	//sets the time between to checks of the inbox:
 	public static final int CHECK_SMS_PERIOD = 10000;
 
+	public static final int SELECT_AND_PLOT=0;
+	public static final int SELECT_AND_CHANGE=1;
+
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		Intent intent = new Intent(this, DataService.class);
 		startService(intent);
-		intent = new Intent(this, LocalService.class);
-		startService(intent);
-		
+			
 		
 	}
 
@@ -31,8 +32,8 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		if (isFinishing()) {
-			//Intent myIntent = new Intent(this,DataService.class);
-			//stopService(myIntent);
+			Intent myIntent = new Intent(this,DataService.class);
+			stopService(myIntent);
 		}
 		super.onDestroy();
 	}
@@ -40,11 +41,14 @@ public class MainActivity extends Activity {
 	
 	@Override
 	protected void onStop() {
-		onDestroy();
 		super.onStop();
 	}
 
-
+	public void plotPlots(View view) {
+		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
+		  myIntent.putExtra("mode", SELECT_AND_PLOT);
+		  startActivity(myIntent);
+	}
 
 
 	public void insertNode(View view) {
@@ -53,6 +57,7 @@ public class MainActivity extends Activity {
 
 	public void changeMetadata(View view) {
 		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
+		  myIntent.putExtra("mode", SELECT_AND_CHANGE);
 		  startActivity(myIntent);
 	  }
 	  

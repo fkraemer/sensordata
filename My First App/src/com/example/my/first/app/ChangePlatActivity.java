@@ -17,6 +17,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
@@ -25,6 +27,7 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 @TargetApi(9)
 public class ChangePlatActivity extends Activity {
@@ -38,9 +41,10 @@ public class ChangePlatActivity extends Activity {
 	private MyConnection mConnect = new MyConnection(latch);
 	
 	private long platformId;
-	private long currentSensorId;
+	private int currentSensorId;
 	private TextView viewId;
 	private TextView viewMobileNo;
+	private ToggleButton receivesButton;
 	private EditText editPeriod;
 	private EditText editLongitude;
 	private EditText editLatitude;
@@ -52,6 +56,7 @@ public class ChangePlatActivity extends Activity {
 	private EditText editSensorElevation;
 
 	private String mobileNo;
+	private boolean isReceiving=false;
 	private String platformDescriptionOld;
 	private String platformDescriptionNew;
 	private int[] platformMetadataOld=new int[4];	//{period,longitude,latitude,elevation}
@@ -63,6 +68,7 @@ public class ChangePlatActivity extends Activity {
 	private static final int DIALOG_SAVED_ID = 1;
 	private static final int DIALOG_SUCCESS_ID = 2;
 	private static final int DIALOG_FAILED_ID = 3;
+	private static final int DIALOG_BIND_ID = 4;
 	
 	private int activeSensor=0;
 	private long[] sensorIds=new long[4];
@@ -83,6 +89,7 @@ public class ChangePlatActivity extends Activity {
 		editLatitude = (EditText) findViewById(R.id.editText41);
 		editElevation = (EditText) findViewById(R.id.editText51);
 		editDescription = (EditText) findViewById(R.id.editText61);
+		receivesButton = (ToggleButton) findViewById(R.id.receivesButton);
 		//setting up the sensor-choose-from-list and editTexts
 		list = (ListView) findViewById(R.id.sensorList);
 		adapter= new  ArrayAdapter<String>(this,android.R.layout.simple_list_item_single_choice,sensorList);
@@ -116,7 +123,7 @@ public class ChangePlatActivity extends Activity {
 	protected void onStart() {
 		super.onStart();
 		
-	    class getPlatformsTask extends AsyncTask<Void, Void, Void> {
+	    class setUpMetadataTask extends AsyncTask<Void, Void, Void> {
 		@Override
 			protected Void doInBackground(Void... arg0) {
 				wasSetOnce=true;
@@ -125,7 +132,6 @@ public class ChangePlatActivity extends Activity {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				// dataService now has been set through mConnect
 				dataService=mConnect.getService();
 		
 		
@@ -138,6 +144,9 @@ public class ChangePlatActivity extends Activity {
 				startManagingCursor(platformCursor);
 				//saving Metadata locally, changed data gets written into the newMetadata fields
 				mobileNo=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_MOBILENO));
+				isReceiving=dataService.platformIdIsBound((int)platformId);
+				
+				
 				platformDescriptionOld=platformDescriptionNew=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_DESCR));
 				platformMetadataOld[0]=platformMetadataNew[0]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_PERIOD));	
 				platformMetadataOld[1]=platformMetadataNew[1]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_LON));
@@ -161,11 +170,27 @@ public class ChangePlatActivity extends Activity {
 			//option to update progressbar via this thread
 			protected void onPostExecute(Void result) {
 				//displaying Metadata
+				
 				setPlatformMetadata();
 				setSensorMetadata();
+				
+				//setting up togglebutton, done here to be in UI thread
+				if (isReceiving) {
+					receivesButton.setChecked(true);
+					receivesButton.setClickable(false);
+				} 
+				receivesButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+					
+					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+						if (isChecked) {
+							dataService.bindNumber(mobileNo,(int) platformId);
+							receivesButton.setClickable(false);
+						}
+					}
+				});
 			}	       
 	    }
-        if (!wasSetOnce) new getPlatformsTask().execute(null,null,null);
+        if (!wasSetOnce) new setUpMetadataTask().execute(null,null,null);
 		
 	}
 	
@@ -178,13 +203,6 @@ public class ChangePlatActivity extends Activity {
         wasSetOnce=false;
     }
 
-	protected void onPause() {
-		super.onPause();
-	}
-
-	protected void onResume() {
-		super.onResume();
-	}
 	
 	public void setPlatformMetadata() {
 		viewId.setText(Long.toString(platformId));
@@ -198,6 +216,7 @@ public class ChangePlatActivity extends Activity {
 	
 	public void getPlatformMetadata() {
 		platformDescriptionNew=editDescription.getText().toString();
+		//the value whether it receives the next sms (togglebutton) is handled seperately
 		try {
 			platformMetadataNew[0]=Integer.valueOf(editPeriod.getText().toString());
 			platformMetadataNew[1]=Integer.valueOf(editLongitude.getText().toString());
@@ -266,7 +285,21 @@ public class ChangePlatActivity extends Activity {
 						//stay in activity
 					}
 				}); 
-		 break;
+		 break;/**
+		 case (DIALOG_BIND_ID): 
+			 builder.setMessage("Do you want the next message to be bound to this platform?")
+			 	.setPositiveButton("Yes", new OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						dataService.bindNumber(mobileNo,(int) platformId);
+						ChangePlatActivity.this.finish();
+					}
+				})
+				.setNegativeButton("No", new OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						ChangePlatActivity.this.finish();
+					}
+				}); 
+		 break;*/
 		}
 		return builder.create();
 		
@@ -299,12 +332,8 @@ public class ChangePlatActivity extends Activity {
 	
 	private OnClickListener insertOnClickListener = new OnClickListener() {
 		public void onClick(DialogInterface dialog, int which) {
-			dataService.insertPlatform(platformMetadataNew[1], platformMetadataNew[2], platformMetadataNew[3],
+			platformId = dataService.insertPlatform(platformMetadataNew[1], platformMetadataNew[2], platformMetadataNew[3],
 					platformMetadataNew[0], mobileNo, platformDescriptionNew);
-			//updating the sensors
-			for (int i=0;i<4;i++) {
-				dataService.updateSensor((int) sensorIds[i], sensorMetadataNew[i*3], sensorMetadataNew[i*3+1], sensorMetadataNew[i*3+2],(int) platformId);
-			}
 			ChangePlatActivity.this.finish();
 		}
 	};

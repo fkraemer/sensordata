@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import com.example.sensor.data.DataCompression;
@@ -55,6 +56,10 @@ public class DataService extends Service {
 		private DatabaseControl db;
 		private NotificationManager mNotificationManager;
 		
+		//these two ArrayLists connect the mobile numbers with the platform id of the database, where there shall be saved next time
+		private ArrayList<String> lastMobileNo =new ArrayList<String>();
+		private ArrayList<Long> lastPlatformId =new ArrayList<Long>();
+		
 		
 
 	@Override
@@ -70,8 +75,8 @@ public class DataService extends Service {
 		//test
 		Cursor curs = db.getAllPlatforms();
 		Toast.makeText(cx, "platforms: "+curs.getPosition()+" count: "+curs.getCount(), Toast.LENGTH_SHORT).show();
-		curs = db.getMeasurement();
-		Toast.makeText(cx, "number of measurements: "+curs.getCount(), Toast.LENGTH_LONG).show();
+		//curs = db.getMeasurement();
+		//Toast.makeText(cx, "number of measurements: "+curs.getCount(), Toast.LENGTH_LONG).show();
 	//	Toast.makeText(cx, "Inhalt: "+curs.getLong(curs.getColumnIndex("id")), Toast.LENGTH_LONG).show();
 		
 		//starting periodical check for new SMS
@@ -150,12 +155,26 @@ public class DataService extends Service {
 	//****************************************************************************************************
 	//public methods used by bound activities
 	
+
+	public void bindNumber(String mobileNo, long platformId) {
+		int listIndex=lastMobileNo.indexOf(mobileNo);
+		if (listIndex==-1) {	//not yet in the list
+			lastMobileNo.add(mobileNo);
+			lastPlatformId.add(platformId);
+		} else {	//already in there, replace!
+			lastPlatformId.set(listIndex, platformId);
+		}
+	}
+	
+	public boolean platformIdIsBound(long platformId) {
+		return lastPlatformId.contains(platformId);
+	}
 	
 	//database methods, just connecting to databaseControl, called here for easy access in all activities,
 	//makes sure db.open/close is done clean
 	
-	public boolean deletePlatform(int id) {
-		return db.deletePLATFORM(id);
+	public boolean deletePlatform(long platformId) {
+		return db.deletePLATFORM(platformId);
 	}
 
 	public Cursor getPlatform(long platformId) {
@@ -165,9 +184,23 @@ public class DataService extends Service {
 	public Cursor getPlatforms() {
 		return db.getAllPlatforms();
 	}
-	
+
+
 	public Cursor getSensorsByPlatformId(long platformId) {
 		return db.getSensorsByPlatformId(platformId);
+	}
+		
+	public Cursor getSubsensorsByPlatformId(long platformId) {
+		return db.getSubsenorsByPlatform(platformId);
+	}
+
+
+	public Cursor getMeasuremntBySubsensor(long subsensorId) {
+		return db.getMeasurement(subsensorId);
+	}
+	
+	public Cursor getMeasuremntByInterval(long timeMin, long timeMax, long subsensorId) {
+		return db.getMeasurementsInterval(timeMin, timeMax, subsensorId);
 	}
 	
 	public boolean updatePlatform(int id, int lon, int lat, int elev,int period, String mobileNo, String descr){
@@ -180,7 +213,7 @@ public class DataService extends Service {
 	}
 	
 	public long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr) {
-		return db.insertPlatform(lat, lon, elev,period, mobileNo, descr);
+		return db.insertPlatformDefault(lat, lon, elev,period, mobileNo, descr);
 	}
 	
 	
@@ -205,8 +238,8 @@ public class DataService extends Service {
 	 * Reading state before last shutdown:
 	 * The lines of lastState should look like this
 	 * [0]:(0-false/1-true)(receivednewSms),
-	 * [1]:numbers of interest //TODO
-	 * [2]:
+	 * [1]:[number of interest]+"/"+[number of interest]+"/"...
+	 * [2]:[number]+"/"+platformId that sms should be saved to+"/"+[number]+"/"+[platform that sms...]+"/"+[...]+"/"+[...]
 	 * [3]:
 	 * [4]:
 	 * @param write
@@ -236,6 +269,30 @@ public class DataService extends Service {
 		if (stringStore[0]!=null) {
 			receivedNewSms = (stringStore[0].charAt(0)!='0');	//sets false if 0, true if 1
 		}
+		if (stringStore[1]!=null) {
+			//reading the pattern of saved mobileNo and platform ids tuples.
+			boolean isId=false;	//is switched for the different types
+			int i=1;
+			int lastCount=0;
+			while (i<stringStore[1].length()) {
+				if (stringStore[1].charAt(i)=='/') {	//reading till slash found, this seperates the single values
+					if (!isId) {
+						lastMobileNo.add(stringStore[1].substring(lastCount, i));	//reading and setting next type to be read, char at i is excluded
+						isId=true;
+					} else {
+						lastPlatformId.add(Long.decode(stringStore[1].substring(lastCount, i)));
+						isId=false;
+					}
+					i++;		//extra step, since minimum one char to next '/'
+					lastCount=i;	//one char behind '/'
+				}
+				i++;
+			}
+		}
+		if (stringStore[2]!=null) {
+			
+		}		
+		//read more stringStore lines here
 
 	}
 	
@@ -244,14 +301,29 @@ public class DataService extends Service {
 	public void saveStateToFile() {
 		String [] stringStore=new String[5];
 		//preparing data to be written
-		stringStore[0]=(new char[]{((receivedNewSms) ? '1' : '0'),'\n'}).toString(); //puts a 1 for receivedSms==true
-	
+		//------------------------
+		
+		stringStore[0]=String.valueOf(((receivedNewSms) ? '1' : '0'))+"\n"; //puts a 1 for receivedSms==true
+		//------------------------
+		StringBuilder sb=new StringBuilder();
+		for(int i=0;i<lastMobileNo.size();i++) {
+			sb.append(lastMobileNo.get(i));
+			sb.append('/');
+			sb.append(lastPlatformId.get(i));
+			sb.append('/');
+		}
+		sb.append('\n');
+		stringStore[1]=sb.toString();
+		//------------------------
+		//TODO numbers of interest
+		//------------------------
+		
 		//writing data to file
 		BufferedWriter out;
 		try {
 			//MODE_PRIVATE creates file, if it does not exist now
 			out = new BufferedWriter(new OutputStreamWriter(openFileOutput(	"lastState", MODE_PRIVATE))); // mode_private overwrites old file
-			for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < 2; i++) {
 				out.write(stringStore[i]);
 			}
 			out.close();	
@@ -260,6 +332,7 @@ public class DataService extends Service {
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
+		
 		
 
 	}
@@ -274,78 +347,88 @@ public class DataService extends Service {
 		Cursor curs = cx.getContentResolver().query(
 				smsInbox, null, null, null, null);
 		int count = curs.getCount();
-		data = new String[count];
-		numbers = new String[count];
-		//preparing String to log the data, first raw messages, then mark them while decoding
-		String[] logString = new String[count];
-		String[] searchNumbers = new String[count];
 		//interestCount counts how many of the read sms are actually sensor-messages we care about
 		int interestCount = 0;
+		// fatalCount counts the fatalerrors, sms that could not be decoded
+		int fatalCount=0;
 		//reading sms from phone
-		if (curs.moveToFirst()) {
-			for (int i = 0; i < curs.getCount(); i++) {
-				try {
-					//checking sender mobile number against the numbers of interest:
-					searchNumbers[i] = curs.getString(curs.getColumnIndex("address"));
-					boolean check = false;
-					for (int j = 0; j < MainActivity.NUMBERSOFINTEREST.length; j++) {
-						if (searchNumbers[i].equals(MainActivity.NUMBERSOFINTEREST[j])) {
-							check = true;
-						}
+		if (!curs.moveToFirst()) {
+			return 0;
+		}
+		
+		for (int i = 0; i < curs.getCount(); i++) {
+			try {
+				//checking sender mobile number against the numbers of interest:
+					String searchNumber = curs.getString(curs.getColumnIndex("address"));
+				boolean check = false;
+				for (int j = 0; j < MainActivity.NUMBERSOFINTEREST.length; j++) {
+					if (searchNumber.equals(MainActivity.NUMBERSOFINTEREST[j])) {
+						check = true;
+						break;
 					}
-					if (check) {
-						//copy data for decoding
-						numbers[interestCount] = searchNumbers[i];
-						data[interestCount] = curs.getString(curs.getColumnIndex("body"));
-						//save and remove from phone
-						String id=curs.getString(curs.getColumnIndex("_id"));
-						logString[interestCount]=((new SimpleDateFormat().format(curs.getLong(curs.getColumnIndex("date")))))
-								+"|"+numbers[interestCount] + "|" + data[interestCount];
-						cx.getContentResolver().delete(Uri.parse("content://sms"), "_id=?", new String[] {id});
-						interestCount++;
-					}
-					curs.moveToNext();
-				} catch (IllegalArgumentException e) {
-
-					System.out.println("No Sms in Database.");
 				}
+				if (check) {
+					//copy data for decoding
+					String body = curs.getString(curs.getColumnIndex("body"));		//content of sms
+					//save and remove from phone
+					String logString=((new SimpleDateFormat().format(curs.getLong(curs.getColumnIndex("date")))))
+							+"|"+numbers[interestCount] + "|" + body;
+					//delete here, so decoding does not run into the same problem after theoretical failure, different Uri necessary
+				cx.getContentResolver().delete(Uri.parse("content://sms"), "_id="+curs.getString(curs.getColumnIndex("_id")), null);
+					//*************************************************************************************************************************************
+					//decoding and putting into the db
+					int [][] sensorData = null;
+					try {
+						//decoding data
+						sensorData = DataCompression.decode(body);
+						//for logging
+						logSms(logString+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"
+								+sensorData[0][4]+":"+sensorData[0][5]+":"+"|ok");
+					} catch (DecodeFatalException e) {
+						fatalCount++;
+						logSms(logString+"|"+e.toString());
+						continue;	//starts with next sms
+					}catch (DecodeRecoverException e) {
+						//recoeverd data is saved in the exception
+						sensorData = ((DecodeRecoverException) e).getDataInts();
+						//for logging
+						logSms(logString+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"
+								+sensorData[0][4]+":"+sensorData[0][5]+":"+"|"+e.toString());
+					} catch (DecodeException e) {			//unreachable
+					}
+					//************************** decoding done, putting into database
+					
+					long platformId=-1;
+					int listIndex=lastMobileNo.indexOf(searchNumber);	//check, whether there is an existing link for this number
+					if (listIndex!=-1){
+						platformId=lastPlatformId.get(listIndex);
+					}
+					//try to find existing platform in the db with this mobileNo, if several take the latest //TODO
+					if (platformId==-1) {
+						 platformId=db.putPlatform(numbers[i]);
+					}
+					if (platformId == -1) {
+						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
+							int period = sensorData[0][0];   //getting period from decoded data
+							db.insertPlatformDefault(0, 0, 0, period, numbers[i], "");	//inserting without metadata, this creates the necessary subsensors
+						}
+					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
+					db.putMeasurements(sensorData, (int) platformId);			
+					
+						
+					//***************************************************************************************************************************
+					interestCount++;
+				}
+				curs.moveToNext();
+			} catch (IllegalArgumentException e) {
+
+				System.out.println("No Sms in Database.");
 			}
 		}
 		curs.close();
-		
-		//decoding sms, fatalCount counts the fatalerrors, sms that could not be decoded
-		int fatalCount=0;
-		for (int i=0; i <interestCount; i++) 
-		{
-			int [][] sensorData = null;
-			
-			try {
-				//decoding data
-				sensorData = DataCompression.decode(data[i]);
-				//for logging
-				logSms(logString[i]+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"+sensorData[0][4]+":"+sensorData[0][5]+":"+"|ok");
-			} catch (DecodeFatalException e) {
-				fatalCount++;
-				continue;	//starts with next sms
-			}catch (DecodeRecoverException e) {
-				//recoeverd data is saved in the exception
-				sensorData = ((DecodeRecoverException) e).getDataInts();
-				//for logging
-				logSms(logString[i]+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"+sensorData[0][4]+":"+sensorData[0][5]+":"+"|"+e.toString());
-			} catch (DecodeException e) {			//unreachable
-			}
-			//try to find existing platform with this mobileNo, if several take the latest //TODO
-			long platformId = db.putPlatform(numbers[i]);
-			if (platformId == -1) {
-				//TODO start translucent activity, ask user for metadata, e.g. GPS and description
-					int period = sensorData[0][0];   //getting period from decoded data
-					db.insertPlatformDefault(0, 0, 0, period, numbers[i], "");	//inserting without metadata, this creates the necessary subsensors
-				}
-				//subsensors and snesors must have been created for putMeasurements
-				db.putMeasurements(sensorData, (int) platformId);
-			
-		}
 		return interestCount-fatalCount;
 	}
+	
+
 }
 

@@ -4,62 +4,56 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical" >
+        android:layout_height="424dp" >
 
-        <RelativeLayout
+        <LinearLayout
+            android:id="@+id/linearLayout1"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" >
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
 
             <Button
-                android:id="@+id/insertButton"
+                android:id="@+id/plotButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_centerHorizontal="true"
-                android:onClick="insertNode"
-                android:text="Insert new Node" />
+                android:onClick="plotPlots"
+                android:text="Plot most recent" />
 
-            <LinearLayout
-                android:id="@+id/linearLayout1"
+            <ListView
+                android:id="@+id/startListView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" >
+                android:layout_height="188dp" >
+            </ListView>
+        </LinearLayout>
 
-                <Button
-                    android:id="@+id/plotButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:onClick="plotPlots"
-                    android:text="Plot most recent" />
+        <Button
+            android:id="@+id/selectButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/linearLayout1"
+            android:onClick="selectPlots"
+            android:text="Select &amp; Plot data" />
 
-                <ListView
-                    android:id="@+id/startListView"
-                    android:layout_width="match_parent"
-                    android:layout_height="188dp" >
-                </ListView>
-            </LinearLayout>
+        <Button
+            android:id="@+id/changeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/selectButton"
+            android:onClick="changeMetadata"
+            android:text="View &amp; Change Node Metadata" />
 
-            <Button
-                android:id="@+id/selectButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="true"
-                android:layout_below="@+id/linearLayout1"
-                android:onClick="selectPlots"
-                android:text="Select &amp; Plot data" />
-
-            <Button
-                android:id="@+id/changeButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="true"
-                android:layout_below="@+id/selectButton"
-                android:onClick="changeMetadata"
-                android:text="View &amp; Change Node Metadata" />
-        </RelativeLayout>
-    </LinearLayout>
+        <Button
+            android:id="@+id/insertButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:onClick="insertNode"
+            android:text="Insert new Node" />
+    </RelativeLayout>
 
 </ScrollView>

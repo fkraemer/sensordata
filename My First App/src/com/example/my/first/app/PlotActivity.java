@@ -1,10 +1,13 @@
 package com.example.my.first.app;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.LabeledIntent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -38,7 +41,9 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
 
+import com.example.my.first.app.ChooseTimeActivity.getTimeTask;
 import com.example.sensor.data.DataSet;
 import com.example.sensor.data.DataStorage;
 
@@ -59,26 +64,53 @@ public class PlotActivity extends Activity {
 	private PointF minXY;
 	private PointF maxXY;
 
+
+	private DataService dataService;
+	private Cursor curs=null;
+	private final CountDownLatch latch = new CountDownLatch(1);
+	private MyConnection mConnect = new MyConnection(latch);
+	private Context cx;
+	boolean wasSetOnce=false;
+	private long platformId; 
+	private long timeMin;
+	private long timeMax;
+
+	private static final int TEMP_COUNT=4;
+	private static final int MOIST_COUNT=4;
+	private ArrayList<Float>[] tempLists;
+	private ArrayList<Float>[] moistLists;
+	private ArrayList<Float> batList=new ArrayList<Float>();
+	private ArrayList<Long> timeList=new ArrayList<Long>();
+	
 	// very simple, Y-values only, filling the temperature plot
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		Bundle extras =getIntent().getExtras();
-		ArrayList<DataSet> selected=extras.getParcelableArrayList("selected");
+		platformId=extras.getLong("platformId");
+		timeMin=extras.getLong("minTime");
+		timeMax=extras.getLong("maxTime");
 
 		setContentView(R.layout.plot);
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
 		txt1 = (TextView)findViewById(R.id.txtview1);
 		txt2 = (TextView)findViewById(R.id.txtview2);
 		txt3 = (TextView)findViewById(R.id.txtview3);
+		for (int i=0;i<TEMP_COUNT;i++) {
+		//maybe do later, then save some resources by assuring size up front
+			tempLists[i]=new ArrayList<Float>();
+		}
+		for (int i=0;i<MOIST_COUNT;i++) {
+			//maybe do later, then save some resources by assuring size up front
+				moistLists[i]=new ArrayList<Float>();
+			}
 		temperatureSimpleXYPlot = (XYPlot) findViewById(R.id.temperatureXYPlot);
 		moistureSimpleXYPlot = (XYPlot) findViewById(R.id.moistureXYPlot);
 
 
 		//set plot properties
 		Format timeFormat =new Format() {
-
-			// create a simple date format that draws on the hours
+			// create a simple date format that draws the hours
 			SimpleDateFormat dateFormat = new SimpleDateFormat("HH");
 
 			public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
@@ -87,16 +119,13 @@ public class PlotActivity extends Activity {
 				Date date = new Date(((Number) obj).longValue());
 				return dateFormat.format(date, toAppendTo, pos);
 			}
-
-
-			public Object parseObject(String source, ParsePosition pos) {
+			@Override
+			public Object parseObject(String string, ParsePosition position) {
 				return null;
-
 			}
-
 		};
-
 		
+		//setting up the graphs
 		temperatureSimpleXYPlot.getGraphWidget().setTicksPerRangeLabel(1);
 		temperatureSimpleXYPlot.getGraphWidget().setTicksPerDomainLabel(1);
 		temperatureSimpleXYPlot.getGraphWidget().setRangeValueFormat(
@@ -118,116 +147,139 @@ public class PlotActivity extends Activity {
 		moistureSimpleXYPlot.setRangeLabel("Moisture");
 		moistureSimpleXYPlot.setDomainLabel("Time");
 		moistureSimpleXYPlot.disableAllMarkup();
+		}
+	
+		protected void onStart() {
+	        super.onStart();
+	        // Bind to LocalService, happens in UI-thread, watch time delays !!
+	        Intent intent =  new Intent(this, DataService.class);
+			bindService(intent, mConnect,0);
+	        if (!wasSetOnce) new getPlotsTask().execute(null,null,null);
+	    }
+
+		class getPlotsTask extends AsyncTask<Void, Void, Void> {
 
 
-
-		float timeOffset = selected.get(0).getTimeOffset().getTime();	//set fixed time offset
-		float timeStamp = selected.get(0).getDate().getTime();
-		for (int k=0;k<selected.size();k++){
-			DataSet data = selected.get(k);
-
-			for (int j = 0; j < 4; j++) {
-
-				Float[] tempColumn = data.getTempData(j);
-				Float[] moistColumn = data.getMoistData(j);
-				Float[] timeColumn = new Float[tempColumn.length];
-				// generating timestamps
-				for (int i = 0; i < tempColumn.length; i++) {
-					timeColumn[i] = timeStamp + timeOffset * i + k * timeOffset * 24;	//TODO dont hardcode measure count or change to  individual timeStamps
+			@Override
+			protected Void doInBackground(Void... arg0) {
+				wasSetOnce=true;
+				try {
+					latch.await();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
-
-				//setting up the lines
-				XYSeries tempSeries = new SimpleXYSeries(
-						Arrays.asList(timeColumn), Arrays.asList(tempColumn),
-						"Temperature Series");
-				XYSeries moistSeries = new SimpleXYSeries(
-						Arrays.asList(timeColumn), Arrays.asList(moistColumn),
-						"Moisture Series");
+				dataService=mConnect.getService();
 				
-				int colour = 0;
-				switch (j) {
-				case 0:
-					colour = Color.WHITE;
-					break;
-				case 1:
-					colour = Color.GRAY;
-					break;
-				case 2:
-					colour = Color.RED;
-					break;
-				case 3:
-					colour = Color.CYAN;
-					break;
+				//get the 9 sensordatastreams, put them into the lists
+				Cursor subsensors=dataService.getSubsensorsByPlatformId(platformId);
+				for (int k=0;k<MOIST_COUNT;k++){
+					long subsensorId = subsensors.getLong(subsensors.getColumnIndex(DatabaseControl.KEY_ID));
+					Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
+					for (int i=0;i<measurementsC.getCount();i++) {
+						moistLists[k].add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
+					}
+					subsensors.moveToNext();
 				}
+				for (int k=0;k<TEMP_COUNT;k++){
+					long subsensorId = subsensors.getLong(subsensors.getColumnIndex(DatabaseControl.KEY_ID));
+					Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
+					for (int i=0;i<measurementsC.getCount();i++) {
+						tempLists[k].add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
+					}
+					subsensors.moveToNext();
+				}
+				long subsensorId = subsensors.getLong(subsensors.getColumnIndex(DatabaseControl.KEY_ID));
+				Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
+				for (int i=0;i<measurementsC.getCount();i++) {
+					batList.add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
+					timeList.add(measurementsC.getLong(measurementsC.getColumnIndex(DatabaseControl.KEY_TIMESTAMP)));
+				}
+				subsensors.moveToNext();
+				return null;
+			}
+			//option to update progressbar via this thread
+				
+			//-------------------------------------------------------------------------------------------------------------------------------
+			protected void onPostExecute(Void result) {
+				//setting up the lines
+				for (int k=0;k<MOIST_COUNT;k++){
+				XYSeries moistSeries = new SimpleXYSeries(moistLists[k],timeList,"Moisture Series");
+				moistureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
+				}
+				for (int k=0;k<TEMP_COUNT;k++){
+					XYSeries moistSeries = new SimpleXYSeries(tempLists[k],timeList,"Temperature Series");
+					temperatureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
+				}
+				//TODO visualize battery
+				
+				setupTouch();
+				insertMidnightLines();
 
-				LineAndPointFormatter series1Format = new LineAndPointFormatter(
-						Color.GREEN, // line
-						colour, // point color
-						null); // fill Color
-				Paint paint = series1Format.getLinePaint();
-				paint.setStrokeWidth(3);
-				series1Format.setLinePaint(paint);
+				moistureSimpleXYPlot.redraw();
+				temperatureSimpleXYPlot.redraw();
 
-				temperatureSimpleXYPlot.addSeries(tempSeries, series1Format);
-				moistureSimpleXYPlot.addSeries(moistSeries, series1Format);
 			}
 
 		}
-		float ABS_Y_MIN;
-		float ABS_Y_MAX;
-		float MAX_Y_DISTANCE;
-		float ABS_X_MIN;
-		float ABS_X_MAX;
-		float MAX_X_DISTANCE;	
-
-		//getting the max/min points
-		temperatureSimpleXYPlot.calculateMinMaxVals();
-		minXY=new PointF(temperatureSimpleXYPlot.getCalculatedMinX().floatValue(),
-				temperatureSimpleXYPlot.getCalculatedMinY().floatValue());
-		maxXY=new PointF(temperatureSimpleXYPlot.getCalculatedMaxX().floatValue(),
-				temperatureSimpleXYPlot.getCalculatedMaxY().floatValue());
-		float dif=maxXY.y-minXY.y; //setting the maximum shown y-range to be a minimum range of 15
-		if (dif<15) {
-			dif=15-dif;
-		} else dif=5;	//otherwise just add 2.5 on both sides
-		ABS_Y_MIN=minXY.y-dif/2;
-		ABS_Y_MAX=maxXY.y+dif/2;
-		MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
-		temperatureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
-		//saetting the absolute borders of the plot
-		ABS_X_MIN=minXY.x;
-		ABS_X_MAX=maxXY.x;	//shown time(y-axis) becomes a maximum of 48hours
-		MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<48.0f*60*60*1000) ? (ABS_X_MAX-ABS_X_MIN) : 48.0f*60*60*1000;
-		temperatureSimpleXYPlot.setDomainBoundaries(minXY.x,maxXY.x, BoundaryMode.FIXED);	//start with most recent (max 48)hours
-
-		plotTouch tempTouch= new plotTouch(temperatureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
-				MAX_X_DISTANCE,MIN_X_DISTANCE,TEMP_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
-
-		moistureSimpleXYPlot.calculateMinMaxVals();
-		minXY=new PointF(moistureSimpleXYPlot.getCalculatedMinX().floatValue(),
-				moistureSimpleXYPlot.getCalculatedMinY().floatValue());
-		maxXY=new PointF(moistureSimpleXYPlot.getCalculatedMaxX().floatValue(),
-				moistureSimpleXYPlot.getCalculatedMaxY().floatValue());
-		dif=maxXY.y-minXY.y; //setting the maximum shown y-range to be a minimum range of 15
-		if (dif<150) {		//TODO fidatat values in
-			dif=150-dif;
-		} else dif=50;
-		ABS_Y_MIN=(minXY.y-dif/2 < 0) ? 0 : minXY.y-dif/2; //dont allow negative values, never measured
-		ABS_Y_MAX=(minXY.y-dif/2 < 0) ? dif : maxXY.y+dif/2; //upper bound keeps dif distance to lower 
-		MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
 		
-		//max_x_values can be reused from temperature
-		moistureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
+		private void setupTouch() {
+			float ABS_Y_MIN;
+			float ABS_Y_MAX;
+			float MAX_Y_DISTANCE;
+			float ABS_X_MIN;
+			float ABS_X_MAX;
+			float MAX_X_DISTANCE;	
+	
+			//getting the max/min points
+			temperatureSimpleXYPlot.calculateMinMaxVals();
+			minXY=new PointF(temperatureSimpleXYPlot.getCalculatedMinX().floatValue(),
+					temperatureSimpleXYPlot.getCalculatedMinY().floatValue());
+			maxXY=new PointF(temperatureSimpleXYPlot.getCalculatedMaxX().floatValue(),
+					temperatureSimpleXYPlot.getCalculatedMaxY().floatValue());
+			float dif=maxXY.y-minXY.y; //setting the maximum shown y-range to be a minimum range of 15
+			if (dif<15) {
+				dif=15-dif;
+			} else dif=5;	//otherwise just add 2.5 on both sides
+			ABS_Y_MIN=minXY.y-dif/2;
+			ABS_Y_MAX=maxXY.y+dif/2;
+			MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
+			temperatureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
+			//saetting the absolute borders of the plot
+			ABS_X_MIN=minXY.x;
+			ABS_X_MAX=maxXY.x;	//shown time(y-axis) becomes a maximum of 48hours
+			MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<48.0f*60*60*1000) ? (ABS_X_MAX-ABS_X_MIN) : 48.0f*60*60*1000;
+			temperatureSimpleXYPlot.setDomainBoundaries(minXY.x,maxXY.x, BoundaryMode.FIXED);	//start with most recent (max 48)hours
+	
+			plotTouch tempTouch= new plotTouch(temperatureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
+					MAX_X_DISTANCE,MIN_X_DISTANCE,TEMP_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
+	
+			moistureSimpleXYPlot.calculateMinMaxVals();
+			minXY=new PointF(moistureSimpleXYPlot.getCalculatedMinX().floatValue(),
+					moistureSimpleXYPlot.getCalculatedMinY().floatValue());
+			maxXY=new PointF(moistureSimpleXYPlot.getCalculatedMaxX().floatValue(),
+					moistureSimpleXYPlot.getCalculatedMaxY().floatValue());
+			dif=maxXY.y-minXY.y; //setting the maximum shown y-range to be a minimum range of 15
+			if (dif<150) {		//TODO fidatat values in
+				dif=150-dif;
+			} else dif=50;
+			ABS_Y_MIN=(minXY.y-dif/2 < 0) ? 0 : minXY.y-dif/2; //dont allow negative values, never measured
+			ABS_Y_MAX=(minXY.y-dif/2 < 0) ? dif : maxXY.y+dif/2; //upper bound keeps dif distance to lower 
+			MAX_Y_DISTANCE=ABS_Y_MAX - ABS_Y_MIN;
+			
+			//max_x_values can be reused from temperature
+			moistureSimpleXYPlot.setRangeBoundaries(minXY.y,maxXY.y, BoundaryMode.FIXED);
+			
+			plotTouch moistTouch= new plotTouch(moistureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
+					MAX_X_DISTANCE,MIN_X_DISTANCE,MOIST_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
+			
 
-		
-		
-		plotTouch moistTouch= new plotTouch(moistureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
-				MAX_X_DISTANCE,MIN_X_DISTANCE,MOIST_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
+			temperatureSimpleXYPlot.setOnTouchListener(tempTouch);
+			moistureSimpleXYPlot.setOnTouchListener(moistTouch);
+		}
 
-
+	private void insertMidnightLines() { 
 		//prepare: draw 24h lines (every midnight)
-		Long[] midnights = lookForMidnight(selected.get(0).getDate(), selected
-				.get(0).getTimeOffset().getTime(), selected.size());
+		Long[] midnights = lookForMidnight();
 		// filling plots with midnight borders
 		for (int i = 0; i < midnights.length; i++) {
 			XYSeries midnightSeriesTemp = new SimpleXYSeries(
@@ -250,17 +302,10 @@ public class PlotActivity extends Activity {
 			moistureSimpleXYPlot.addSeries(midnightSeriesMoist, series1Format);
 		}
 		
-		moistureSimpleXYPlot.redraw();
-		temperatureSimpleXYPlot.redraw();
-
-		temperatureSimpleXYPlot.setOnTouchListener(tempTouch);
-		moistureSimpleXYPlot.setOnTouchListener(moistTouch);
+		
 	}
 
-	private Long[] lookForMidnight(Date date, long offset, int size) {
-		long timeMin = date.getTime();
-		long timeMax = timeMin + offset * size * 24; // TODO dont hardcode nr	of measures
-		
+	private Long[] lookForMidnight() {		
 		// compute number of days:
 		int difDays = (int) (timeMax - timeMin) / (24 * 60 * 60 * 1000);
 		Long[] result = new Long[difDays+1];
@@ -275,5 +320,49 @@ public class PlotActivity extends Activity {
 		}
 		return result;
 	}
+	
+    protected void onStop() {
+        super.onStop();
+        // Unbind from the dataservice
+        if (mConnect.isBound()) {
+            unbindService(mConnect);
+        }
+        wasSetOnce=false;	//flag to execute listupdate on next startup
+    }
 
+
+	protected void onResume() {
+		super.onResume();
+		//updating the data on resume
+		new getPlotsTask().execute(null,null,null);
+	}
+
+	private LineAndPointFormatter getFormat(int i) {
+
+		int colour = 0;
+		switch (i) {
+		case 0:
+			colour = Color.WHITE;
+			break;
+		case 1:
+			colour = Color.GRAY;
+			break;
+		case 2:
+			colour = Color.RED;
+			break;
+		case 3:
+			colour = Color.CYAN;
+			break;
+		}
+
+		LineAndPointFormatter series1Format = new LineAndPointFormatter(
+				Color.GREEN, // line
+				colour, // point color
+				null); // fill Color
+		Paint paint = series1Format.getLinePaint();
+		paint.setStrokeWidth(3);
+		series1Format.setLinePaint(paint);
+		return series1Format;
+
+	}
 }

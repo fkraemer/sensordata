@@ -6,6 +6,7 @@
     <string name="menu_settings">Settings</string>
     <string name="title_activity_plot">PlotActivity</string>
     <string name="title_activity_chooseplat">Choose a platform</string>
+    <string name="title_activity_choosetime">Which span of time</string>
     <string name="title_activity_changeplat">View and Change Metadata</string>
     <string name="title_activity_menu">MenuActivity</string>
     <string name="title_activity_main">SensorData</string>
