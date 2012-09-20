@@ -147,17 +147,31 @@ public class PlotActivity extends Activity {
 		moistureSimpleXYPlot.setRangeLabel("Moisture");
 		moistureSimpleXYPlot.setDomainLabel("Time");
 		moistureSimpleXYPlot.disableAllMarkup();
+		
 		}
 	
 		protected void onStart() {
 	        super.onStart();
+
+			//------------------------------------------------------- DEBUG
+			XYSeries tempSeries = new SimpleXYSeries(Arrays.asList((new Float[]{18.0f,15.0f,17.0f,20.0f,21.0f,15.0f})),
+					Arrays.asList(new Long[]{1347938721876l,1347939721876l,1347938721876l,1347940721876l,1347941721876l,1347942721876l}),"Temperature Series");
+			temperatureSimpleXYPlot.addSeries(tempSeries, getFormat(1));
+			temperatureSimpleXYPlot.redraw();
+			temperatureSimpleXYPlot.redraw();
+			temperatureSimpleXYPlot.redraw();
+			temperatureSimpleXYPlot.redraw();
+			
+			
+		//	------------------------------------------------------------------------------------------------------------------------------------
+			/**
 	        // Bind to LocalService, happens in UI-thread, watch time delays !!
 	        Intent intent =  new Intent(this, DataService.class);
 			bindService(intent, mConnect,0);
 	        if (!wasSetOnce) {
 	        	new getPlotsTask().execute(null,null,null);
 	        	wasSetOnce=true;
-	        }
+	        }*/
 	        
 	    }
 
@@ -212,16 +226,23 @@ public class PlotActivity extends Activity {
 					XYSeries moistSeries = new SimpleXYSeries(moistLists[k],timeList,"Moisture Series");
 				//	moistureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
 				}
+				//Debug:			-------------------------------------------------------------
+				XYSeries tempSeries = new SimpleXYSeries(Arrays.asList((new Float[]{18.0f,15.0f,17.0f,20.0f,21.0f,15.0f})),
+						Arrays.asList(new Long[]{1347938721876l,1347939721876l,1347938721876l,1347940721876l,1347941721876l,1347942721876l}),"Temperature Series");
+				temperatureSimpleXYPlot.addSeries(tempSeries, getFormat(1));
+				
+				
+			//	------------------------------------------------------------------------------------------------------------------------------------
 				for (int k=0;k<TEMP_COUNT;k++){
-					XYSeries tempSeries = new SimpleXYSeries(tempLists[k],timeList,"Temperature Series");
-					temperatureSimpleXYPlot.addSeries(tempSeries, getFormat(k));
+			//		XYSeries tempSeries = new SimpleXYSeries(tempLists[k],timeList,"Temperature Series");
+				//	temperatureSimpleXYPlot.addSeries(tempSeries, getFormat(k));
 				}
 				//TODO visualize battery
 				
-				setupTouch();
+			//	setupTouch();
 			//	insertMidnightLines();
 
-				moistureSimpleXYPlot.redraw();
+				//moistureSimpleXYPlot.redraw();
 				temperatureSimpleXYPlot.redraw();
 
 			}
@@ -279,7 +300,7 @@ public class PlotActivity extends Activity {
 					MAX_X_DISTANCE,MIN_X_DISTANCE,MOIST_MIN_Y_DISTANCE,MAX_Y_DISTANCE,scroll);
 			
 
-			temperatureSimpleXYPlot.setOnTouchListener(tempTouch);
+		//	temperatureSimpleXYPlot.setOnTouchListener(tempTouch);
 		//	moistureSimpleXYPlot.setOnTouchListener(moistTouch);
 		}
 

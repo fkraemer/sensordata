@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream.PutField;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -394,8 +395,8 @@ public class DataService extends Service {
 								+sensorData[0][4]+":"+sensorData[0][5]+":"+"|"+e.toString());
 					} catch (DecodeException e) {			//unreachable
 					}
-					//************************** decoding done, putting into database
 					
+					//************************** decoding done, putting into database ************************************************************
 					long platformId=-1;
 					int listIndex=lastMobileNo.indexOf(searchNumber);	//check, whether there is an existing link for this number
 					if (listIndex!=-1){
@@ -408,13 +409,14 @@ public class DataService extends Service {
 					if (platformId == -1) {
 						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 							int period = sensorData[0][0];   //getting period from decoded data
-							db.insertPlatformDefault(0, 0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
+							platformId=db.insertPlatformDefault(0, 0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
+							//case, we dont know about this sensor yet, mark in the bindnumbers:
+							bindNumber(searchNumber, platformId);
 						}
 					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
 					db.putMeasurements(sensorData, (int) platformId);			
-					
-						
 					//***************************************************************************************************************************
+					
 					interestCount++;
 				}
 				curs.moveToNext();

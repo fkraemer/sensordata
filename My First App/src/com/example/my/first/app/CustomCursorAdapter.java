@@ -34,7 +34,7 @@ public class CustomCursorAdapter extends CursorAdapter {
         ((TextView) v.findViewById(R.id.mobile_number)).setText(mobileNo);
         ((TextView) v.findViewById(R.id.id)).setText(Long.toString(platformId));
         ((TextView) v.findViewById(R.id.description)).setText(description);
-        if (isBound.length>=c.getPosition() && isBound[c.getPosition()]) {	//check array size, happens rarely that the adapter updates, when isBound is not ready
+        if (isBound.length>c.getPosition() && isBound[c.getPosition()]) {	//check array size, happens rarely that the adapter reloads, when isBound is not updated
 
         	((CheckBox) v.findViewById(R.id.isBoundBox)).setVisibility(View.VISIBLE);
         	((CheckBox) v.findViewById(R.id.isBoundBox)).setChecked(true);
