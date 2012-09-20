@@ -275,13 +275,12 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return curs;
 	}
 	
-	public Cursor getMeasurementsInterval(long minTime, long maxTime, long subSensorId) {
-		return db.rawQuery("SELECT "+ DATABASE_TABLE_MEASUREMENT+"."+KEY_TIMESTAMP+" , "+DATABASE_TABLE_MEASUREMENT+"."+KEY_VALUE+
-				" FROM "+DATABASE_TABLE_PLATFORM+","+DATABASE_TABLE_SUBSENSOR+
-				" ON "+DATABASE_TABLE_SUBSENSOR+"."+KEY_ID+"="+subSensorId+
-				" WHERE "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+">="+Long.toString(minTime)+
-				" AND "+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+"<="+Long.toString(maxTime)+
-				" ORDER BY"+DATABASE_TABLE_PLATFORM+"."+KEY_TIMESTAMP+" ASC", null);
+	public Cursor getMeasurementsInterval(long minTime, long maxTime, long subsensorId) {
+		Cursor curs= db.query(DATABASE_TABLE_MEASUREMENT,new String[]{KEY_TIMESTAMP,KEY_VALUE},
+				KEY_SUBSENSORID+" = "+subsensorId+ " AND "+KEY_TIMESTAMP+">="+Long.toString(minTime)+
+				" AND "+KEY_TIMESTAMP+"<="+Long.toString(maxTime),null, null,null,KEY_TIMESTAMP+" ASC",null);
+		curs.moveToFirst();
+		return curs;
 	}
 	
 	

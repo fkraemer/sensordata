@@ -52,24 +52,24 @@ public class ChooseTimeActivity extends Activity {
 		//getting the platform to work on
 		Bundle extras = getIntent().getExtras();
 		platformId=extras.getLong("platformId");
-		
+        // Bind to LocalService, happens in UI-thread, watch time delays !!
+        Intent intent =  new Intent(this, DataService.class);
+		bindService(intent, mConnect,0);
 	}
 	
 	@SuppressWarnings("deprecation") // both just since API11
 	protected void onStart() {
         super.onStart();
-        // Bind to LocalService, happens in UI-thread, watch time delays !!
-        Intent intent =  new Intent(this, DataService.class);
-		bindService(intent, mConnect,0);
-        if (!wasSetOnce) new getTimeTask().execute(null,null,null);
+        if (!wasSetOnce) {
+        	new getTimeTask().execute(null,null,null);
+        	wasSetOnce=true;
+        }
     }
 
 	class getTimeTask extends AsyncTask<Void, Void, Void> {
 
-
 		@Override
 		protected Void doInBackground(Void... arg0) {
-			wasSetOnce=true;
 			try {
 				latch.await();
 			} catch (InterruptedException e) {
@@ -100,7 +100,10 @@ public class ChooseTimeActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		//updating the data on resume
-		new getTimeTask().execute(null,null,null);
+		if (!wasSetOnce) {
+			new getTimeTask().execute(null,null,null);
+			wasSetOnce=true;
+        }
 	}
 	
 	public void plot(View view) {

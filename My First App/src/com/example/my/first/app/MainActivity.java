@@ -45,9 +45,8 @@ public class MainActivity extends Activity {
 	}
 
 	public void plotPlots(View view) {
-		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
-		  myIntent.putExtra("mode", SELECT_AND_PLOT);
-		  startActivity(myIntent);
+		 // Intent myIntent = new Intent(this,SelectActivity.class);
+		 // startActivity(myIntent);
 	}
 
 
@@ -63,7 +62,8 @@ public class MainActivity extends Activity {
 	  
 
 	  public void selectPlots(View view) {
-		  Intent myIntent = new Intent(this,SelectActivity.class);
+		  Intent myIntent = new Intent(this,ChoosePlatActivity.class);
+		  myIntent.putExtra("mode", SELECT_AND_PLOT);
 		  startActivity(myIntent);
 	  }
 	  

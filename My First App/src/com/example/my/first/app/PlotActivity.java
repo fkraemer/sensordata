@@ -77,8 +77,8 @@ public class PlotActivity extends Activity {
 
 	private static final int TEMP_COUNT=4;
 	private static final int MOIST_COUNT=4;
-	private ArrayList<Float>[] tempLists;
-	private ArrayList<Float>[] moistLists;
+	private ArrayList<Float>[] tempLists=new ArrayList[TEMP_COUNT];
+	private ArrayList<Float>[] moistLists=new ArrayList[MOIST_COUNT];
 	private ArrayList<Float> batList=new ArrayList<Float>();
 	private ArrayList<Long> timeList=new ArrayList<Long>();
 	
@@ -154,7 +154,11 @@ public class PlotActivity extends Activity {
 	        // Bind to LocalService, happens in UI-thread, watch time delays !!
 	        Intent intent =  new Intent(this, DataService.class);
 			bindService(intent, mConnect,0);
-	        if (!wasSetOnce) new getPlotsTask().execute(null,null,null);
+	        if (!wasSetOnce) {
+	        	new getPlotsTask().execute(null,null,null);
+	        	wasSetOnce=true;
+	        }
+	        
 	    }
 
 		class getPlotsTask extends AsyncTask<Void, Void, Void> {
@@ -162,7 +166,6 @@ public class PlotActivity extends Activity {
 
 			@Override
 			protected Void doInBackground(Void... arg0) {
-				wasSetOnce=true;
 				try {
 					latch.await();
 				} catch (InterruptedException e) {
@@ -177,6 +180,9 @@ public class PlotActivity extends Activity {
 					Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
 					for (int i=0;i<measurementsC.getCount();i++) {
 						moistLists[k].add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
+						if (k==0) 
+							timeList.add(measurementsC.getLong(measurementsC.getColumnIndex(DatabaseControl.KEY_TIMESTAMP)));
+						measurementsC.moveToNext();
 					}
 					subsensors.moveToNext();
 				}
@@ -185,6 +191,7 @@ public class PlotActivity extends Activity {
 					Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
 					for (int i=0;i<measurementsC.getCount();i++) {
 						tempLists[k].add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
+						measurementsC.moveToNext();
 					}
 					subsensors.moveToNext();
 				}
@@ -192,9 +199,8 @@ public class PlotActivity extends Activity {
 				Cursor measurementsC =dataService.getMeasuremntByInterval(timeMin, timeMax, subsensorId);
 				for (int i=0;i<measurementsC.getCount();i++) {
 					batList.add(measurementsC.getFloat(measurementsC.getColumnIndex(DatabaseControl.KEY_VALUE)));
-					timeList.add(measurementsC.getLong(measurementsC.getColumnIndex(DatabaseControl.KEY_TIMESTAMP)));
+					measurementsC.moveToNext();
 				}
-				subsensors.moveToNext();
 				return null;
 			}
 			//option to update progressbar via this thread
@@ -203,17 +209,17 @@ public class PlotActivity extends Activity {
 			protected void onPostExecute(Void result) {
 				//setting up the lines
 				for (int k=0;k<MOIST_COUNT;k++){
-				XYSeries moistSeries = new SimpleXYSeries(moistLists[k],timeList,"Moisture Series");
-				moistureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
+					XYSeries moistSeries = new SimpleXYSeries(moistLists[k],timeList,"Moisture Series");
+				//	moistureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
 				}
 				for (int k=0;k<TEMP_COUNT;k++){
-					XYSeries moistSeries = new SimpleXYSeries(tempLists[k],timeList,"Temperature Series");
-					temperatureSimpleXYPlot.addSeries(moistSeries, getFormat(k));
+					XYSeries tempSeries = new SimpleXYSeries(tempLists[k],timeList,"Temperature Series");
+					temperatureSimpleXYPlot.addSeries(tempSeries, getFormat(k));
 				}
 				//TODO visualize battery
 				
 				setupTouch();
-				insertMidnightLines();
+			//	insertMidnightLines();
 
 				moistureSimpleXYPlot.redraw();
 				temperatureSimpleXYPlot.redraw();
@@ -274,7 +280,7 @@ public class PlotActivity extends Activity {
 			
 
 			temperatureSimpleXYPlot.setOnTouchListener(tempTouch);
-			moistureSimpleXYPlot.setOnTouchListener(moistTouch);
+		//	moistureSimpleXYPlot.setOnTouchListener(moistTouch);
 		}
 
 	private void insertMidnightLines() { 
@@ -297,8 +303,7 @@ public class PlotActivity extends Activity {
 			paint.setStrokeWidth(1);
 			series1Format.setLinePaint(paint);
 
-			temperatureSimpleXYPlot
-					.addSeries(midnightSeriesTemp, series1Format);
+			temperatureSimpleXYPlot.addSeries(midnightSeriesTemp, series1Format);
 			moistureSimpleXYPlot.addSeries(midnightSeriesMoist, series1Format);
 		}
 		
@@ -333,8 +338,11 @@ public class PlotActivity extends Activity {
 
 	protected void onResume() {
 		super.onResume();
-		//updating the data on resume
-		new getPlotsTask().execute(null,null,null);
+		//updating the data on resume     
+		if (!wasSetOnce) {
+	    	new getPlotsTask().execute(null,null,null);
+	    	wasSetOnce=true;
+		}
 	}
 
 	private LineAndPointFormatter getFormat(int i) {

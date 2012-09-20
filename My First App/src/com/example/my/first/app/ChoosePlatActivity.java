@@ -82,7 +82,10 @@ public class ChoosePlatActivity extends Activity {
         // Bind to LocalService, happens in UI-thread, watch time delays !!
         Intent intent =  new Intent(this, DataService.class);
 		bindService(intent, mConnect,0);
-        if (!wasSetOnce) new getPlatformsTask().execute(null,null,null);
+        if (!wasSetOnce) {
+        	new getPlatformsTask().execute(null,null,null);
+        	wasSetOnce=true;
+        }
     }
 
 	class getPlatformsTask extends AsyncTask<Void, Void, Void> {
@@ -90,7 +93,6 @@ public class ChoosePlatActivity extends Activity {
 
 		@Override
 		protected Void doInBackground(Void... arg0) {
-			wasSetOnce=true;
 			try {
 				latch.await();
 			} catch (InterruptedException e) {
@@ -148,7 +150,10 @@ public class ChoosePlatActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		//updating the data on resume
-		new getPlatformsTask().execute(null,null,null);
+		  if (!wasSetOnce) {
+	        	new getPlatformsTask().execute(null,null,null);
+	        	wasSetOnce=true;
+		  }
 	}
 	
 	public void backToMain(View view) {

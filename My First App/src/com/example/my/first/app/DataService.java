@@ -50,8 +50,6 @@ public class DataService extends Service {
 		private boolean receivedNewSms=false; //flag, that update to global db is necessary, false for very first start, is updated then
 	    private final IBinder mBinder = new LocalBinder();
 		private Context cx;
-		private String[] data = new String[0];
-		private String[] numbers = new String[0];
 		private Thread checkSmsThread;
 		private DatabaseControl db;
 		private NotificationManager mNotificationManager;
@@ -372,7 +370,7 @@ public class DataService extends Service {
 					String body = curs.getString(curs.getColumnIndex("body"));		//content of sms
 					//save and remove from phone
 					String logString=((new SimpleDateFormat().format(curs.getLong(curs.getColumnIndex("date")))))
-							+"|"+numbers[interestCount] + "|" + body;
+							+"|"+searchNumber + "|" + body;
 					//delete here, so decoding does not run into the same problem after theoretical failure, different Uri necessary
 				cx.getContentResolver().delete(Uri.parse("content://sms"), "_id="+curs.getString(curs.getColumnIndex("_id")), null);
 					//*************************************************************************************************************************************
@@ -405,12 +403,12 @@ public class DataService extends Service {
 					}
 					//try to find existing platform in the db with this mobileNo, if several take the latest //TODO
 					if (platformId==-1) {
-						 platformId=db.putPlatform(numbers[i]);
+						 platformId=db.putPlatform(searchNumber);
 					}
 					if (platformId == -1) {
 						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 							int period = sensorData[0][0];   //getting period from decoded data
-							db.insertPlatformDefault(0, 0, 0, period, numbers[i], "");	//inserting without metadata, this creates the necessary subsensors
+							db.insertPlatformDefault(0, 0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
 						}
 					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
 					db.putMeasurements(sensorData, (int) platformId);			

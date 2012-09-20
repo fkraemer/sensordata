@@ -122,77 +122,84 @@ public class ChangePlatActivity extends Activity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		
-	    class setUpMetadataTask extends AsyncTask<Void, Void, Void> {
-		@Override
-			protected Void doInBackground(Void... arg0) {
-				wasSetOnce=true;
-				try {
-					latch.await();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				dataService=mConnect.getService();
-		
-		
-				//getting the current Metadata from Database
-				platformCursor = dataService.getPlatform(platformId);
-				sensorCursor = dataService.getSensorsByPlatformId(platformId);
-				//bind cursor lifecycle to activity
 
-						startManagingCursor(platformCursor);
-				startManagingCursor(platformCursor);
-				//saving Metadata locally, changed data gets written into the newMetadata fields
-				mobileNo=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_MOBILENO));
-				isReceiving=dataService.platformIdIsBound((int)platformId);
-				
-				
-				platformDescriptionOld=platformDescriptionNew=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_DESCR));
-				platformMetadataOld[0]=platformMetadataNew[0]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_PERIOD));	
-				platformMetadataOld[1]=platformMetadataNew[1]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_LON));
-				platformMetadataOld[2]=platformMetadataNew[2]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_LAT));
-				platformMetadataOld[3]=platformMetadataNew[3]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_ELEV));
-		
-				//prepare the sensors
-				for (int i=0;i<4;i++) {	
-					if (sensorCursor.getCount()<sensorCursor.getPosition()) {		//catches rare wrong cursor indexes
-						break;
-					}
-					sensorIds[i]=sensorCursor.getLong(sensorCursor.getColumnIndex(DatabaseControl.KEY_ID));
-					sensorMetadataOld[i*3]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFX));
-					sensorMetadataOld[i*3+1]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFY));
-					sensorMetadataOld[i*3+2]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFZ));
-					sensorCursor.moveToNext();
-				}
-				sensorMetadataNew=Arrays.copyOf(sensorMetadataOld, 12);
-				return null;
-			}
-			//option to update progressbar via this thread
-			protected void onPostExecute(Void result) {
-				//displaying Metadata
-				
-				setPlatformMetadata();
-				setSensorMetadata();
-				
-				//setting up togglebutton, done here to be in UI thread
-				if (isReceiving) {
-					receivesButton.setChecked(true);
-					receivesButton.setClickable(false);
-				} 
-				receivesButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-					
-					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-						if (isChecked) {
-							dataService.bindNumber(mobileNo,(int) platformId);
-							receivesButton.setClickable(false);
-						}
-					}
-				});
-			}	       
-	    }
-        if (!wasSetOnce) new setUpMetadataTask().execute(null,null,null);
-		
+        if (!wasSetOnce) {
+        	new setUpMetadataTask().execute(null,null,null);
+        	wasSetOnce=true;
+        }
 	}
+	
+    class setUpMetadataTask extends AsyncTask<Void, Void, Void> {
+	@Override
+		protected Void doInBackground(Void... arg0) {
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			dataService=mConnect.getService();
+	
+	
+			//getting the current Metadata from Database
+			platformCursor = dataService.getPlatform(platformId);
+			sensorCursor = dataService.getSensorsByPlatformId(platformId);
+			//bind cursor lifecycle to activity
+
+					startManagingCursor(platformCursor);
+			startManagingCursor(platformCursor);
+			//saving Metadata locally, changed data gets written into the newMetadata fields
+			mobileNo=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_MOBILENO));
+			isReceiving=dataService.platformIdIsBound((int)platformId);
+			
+			
+			platformDescriptionOld=platformDescriptionNew=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_DESCR));
+			platformMetadataOld[0]=platformMetadataNew[0]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_PERIOD));	
+			platformMetadataOld[1]=platformMetadataNew[1]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_LON));
+			platformMetadataOld[2]=platformMetadataNew[2]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_LAT));
+			platformMetadataOld[3]=platformMetadataNew[3]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_ELEV));
+	
+			//prepare the sensors
+			for (int i=0;i<4;i++) {	
+				if (sensorCursor.getCount()<sensorCursor.getPosition()) {		//catches rare wrong cursor indexes
+					break;
+				}
+				sensorIds[i]=sensorCursor.getLong(sensorCursor.getColumnIndex(DatabaseControl.KEY_ID));
+				sensorMetadataOld[i*3]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFX));
+				sensorMetadataOld[i*3+1]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFY));
+				sensorMetadataOld[i*3+2]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFZ));
+				sensorCursor.moveToNext();
+			}
+			sensorMetadataNew=Arrays.copyOf(sensorMetadataOld, 12);
+			return null;
+		}
+	
+		//option to update progressbar via this thread
+		protected void onPostExecute(Void result) {
+			//displaying Metadata
+			
+			setPlatformMetadata();
+			setSensorMetadata();
+			
+			//setting up togglebutton, done here to be in UI thread
+			if (isReceiving) {
+				receivesButton.setChecked(true);
+				receivesButton.setClickable(false);
+			} 
+			//-------------------------------set listener -------------------------------------
+			receivesButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+				
+				public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+					if (isChecked) {
+						dataService.bindNumber(mobileNo,(int) platformId);
+						receivesButton.setClickable(false);
+					}
+				}
+			});
+			//-----------------------------listener end---------------------------------------
+		}	       
+    }
+		
+	
 	
     protected void onStop() {
         super.onStop();
