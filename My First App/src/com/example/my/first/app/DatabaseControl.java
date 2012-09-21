@@ -418,7 +418,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	
 	public Cursor getMeasurement(long subsensorId) {
 		return db.query(DATABASE_TABLE_MEASUREMENT,null,
-				KEY_SUBSENSORID+" = "+subsensorId,null,null,"ASC "+KEY_TIMESTAMP,null);
+				KEY_SUBSENSORID+" = "+subsensorId,null,null,null,KEY_TIMESTAMP+" ASC",null);
 	}
 }
 

@@ -22,8 +22,6 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.main);
 		Intent intent = new Intent(this, DataService.class);
 		startService(intent);
-			
-		
 	}
 
 
@@ -45,8 +43,15 @@ public class MainActivity extends Activity {
 	}
 
 	public void plotPlots(View view) {
-		 // Intent myIntent = new Intent(this,SelectActivity.class);
-		 // startActivity(myIntent);
+	//	Intent intent= new Intent(this, PlotTestActivity.class);
+	//	startActivity(intent);
+		
+		
+		//Intent intent=new Intent(this, PlotActivity.class);
+		//intent.putExtra("minTime", Long.MIN_VALUE);
+		//intent.putExtra("maxTime", Long.MAX_VALUE);
+		//intent.putExtra("platformId",new Long(6));
+		//startActivity(intent);
 	}
 
 
