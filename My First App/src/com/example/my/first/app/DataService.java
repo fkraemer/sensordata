@@ -59,12 +59,18 @@ public class DataService extends Service {
 		private ArrayList<String> lastMobileNo =new ArrayList<String>();
 		private ArrayList<Long> lastPlatformId =new ArrayList<Long>();
 		
+		private ArrayList<String> numbersOfInterest= new ArrayList<String>();
+		
 		
 
 	@Override
 	public void onCreate() {
 		cx =getApplicationContext();
 		mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		//setup default numbers from main activity:
+		for (int i=0; i<MainActivity.NUMBERSOFINTEREST.length;i++) {
+			numbersOfInterest.add(MainActivity.NUMBERSOFINTEREST[i]);
+		}
 		//setup as it was before
 		getStateFromFile();
 
@@ -155,6 +161,11 @@ public class DataService extends Service {
 	//public methods used by bound activities
 	
 
+	public void addNumberOfInterest(String mobileNo) {
+		if (!numbersOfInterest.contains(mobileNo)) numbersOfInterest.add(mobileNo);
+		
+	}
+
 	public void bindNumber(String mobileNo, long platformId) {
 		int listIndex=lastMobileNo.indexOf(mobileNo);
 		if (listIndex==-1) {	//not yet in the list
@@ -202,17 +213,21 @@ public class DataService extends Service {
 		return db.getMeasurementsInterval(timeMin, timeMax, subsensorId);
 	}
 	
-	public boolean updatePlatform(int id, int lon, int lat, int elev,int period, String mobileNo, String descr){
-		return db.updatePlatform(id, lon,lat, elev,period, mobileNo,descr);
+	public boolean updatePlatform(long id, int lon, int lat, int period,String mobileNo, String descr){
+		return db.updatePlatform(id, lon,lat,period, mobileNo,descr);
 	}
 	
-	public boolean updateSensor(int id, int offX, int offY, int offZ, int platformId) {
+	public boolean updateSensor(long id, int offX, int offY, int offZ, int platformId) {
 		return db.updateSensor(id, offX, offY, offZ, platformId);
 		
 	}
 	
-	public long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr) {
-		return db.insertPlatformDefault(lat, lon, elev,period, mobileNo, descr);
+	public long insertPlatform(int lat, int lon,int period, String mobileNo, String descr) {
+		return db.insertPlatformDefault(lat, lon,period, mobileNo, descr);
+	}
+	
+	public long insertPlatformDefault(int lat, int lon, int period, String mobileNo,String descr) {
+		return db.insertPlatformDefault(lat, lon, period, mobileNo, descr);
 	}
 	
 	
@@ -237,8 +252,8 @@ public class DataService extends Service {
 	 * Reading state before last shutdown:
 	 * The lines of lastState should look like this
 	 * [0]:(0-false/1-true)(receivednewSms),
-	 * [1]:[number of interest]+"/"+[number of interest]+"/"...
-	 * [2]:[number]+"/"+platformId that sms should be saved to+"/"+[number]+"/"+[platform that sms...]+"/"+[...]+"/"+[...]
+	 * [1]:[number]+"/"+platformId that sms should be saved to+"/"+[number]+"/"+[platform that sms...]+"/"+[...]+"/"+[...]
+	 * [2]:[number of interest]+"/"+[number of interest]+"/"...
 	 * [3]:
 	 * [4]:
 	 * @param write
@@ -289,8 +304,19 @@ public class DataService extends Service {
 			}
 		}
 		if (stringStore[2]!=null) {
+			//reading the pattern of mobileNo
+			int j=1;
+			int lastCoun=0;
+			while (j<stringStore[1].length()) {
+				if (stringStore[1].charAt(j)=='/') {	//reading till slash found, this seperates the single values
+					addNumberOfInterest(stringStore[1].substring(lastCoun, j));	
+					j++;		//extra step, since minimum one char to next '/'
+					lastCoun=j;	//one char behind '/'
+				}
+				j++;
+			}
+		}
 			
-		}		
 		//read more stringStore lines here
 
 	}
@@ -314,15 +340,22 @@ public class DataService extends Service {
 		sb.append('\n');
 		stringStore[1]=sb.toString();
 		//------------------------
-		//TODO numbers of interest
+		//numbers of interest
 		//------------------------
+		sb=new StringBuilder();
+		for(int i=0;i<numbersOfInterest.size();i++) {
+			sb.append(numbersOfInterest.get(i));
+			sb.append('/');
+		}
+		sb.append('\n');
+		stringStore[2]=sb.toString();
 		
-		//writing data to file
+		//writing data to file, limitted to 3string right now!
 		BufferedWriter out;
 		try {
 			//MODE_PRIVATE creates file, if it does not exist now
 			out = new BufferedWriter(new OutputStreamWriter(openFileOutput(	"lastState", MODE_PRIVATE))); // mode_private overwrites old file
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 3; i++) {
 				out.write(stringStore[i]);
 			}
 			out.close();	
@@ -359,14 +392,7 @@ public class DataService extends Service {
 			try {
 				//checking sender mobile number against the numbers of interest:
 					String searchNumber = curs.getString(curs.getColumnIndex("address"));
-				boolean check = false;
-				for (int j = 0; j < MainActivity.NUMBERSOFINTEREST.length; j++) {
-					if (searchNumber.equals(MainActivity.NUMBERSOFINTEREST[j])) {
-						check = true;
-						break;
-					}
-				}
-				if (check) {
+				if (numbersOfInterest.contains(searchNumber)) {
 					//copy data for decoding
 					String body = curs.getString(curs.getColumnIndex("body"));		//content of sms
 					//save and remove from phone
@@ -409,7 +435,7 @@ public class DataService extends Service {
 					if (platformId == -1) {
 						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 							int period = sensorData[0][0];   //getting period from decoded data
-							platformId=db.insertPlatformDefault(0, 0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
+							platformId=db.insertPlatformDefault(0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
 							//case, we dont know about this sensor yet, mark in the bindnumbers:
 							bindNumber(searchNumber, platformId);
 						}
@@ -428,6 +454,7 @@ public class DataService extends Service {
 		curs.close();
 		return interestCount-fatalCount;
 	}
+
 	
 
 }

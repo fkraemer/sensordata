@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+	<head>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<style type="text/css">
+			body {
+				font-family: Helvetica, Arial, sans-serif;
+				font-size:10px;
+				margin:0;
+			}
+
+			#content {
+
+			}
+		</style>
+
+		<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+		<script type="text/javascript">
+			function initialize() {
+				var latlng = new google.maps.LatLng(-31.949977,115.800101);
+				var settings = {
+					zoom: 17,
+					center: latlng,
+					mapTypeControl: true,
+					mapTypeControlOptions: {style: google.maps.MapTypeControlStyle.DROPDOWN_MENU},
+					navigationControl: true,
+					navigationControlOptions: {style: google.maps.NavigationControlStyle.SMALL},
+					mapTypeId: google.maps.MapTypeId.SATELLITE};
+				var map = new google.maps.Map(document.getElementById("map_canvas"), settings);
+				
+				var sensor1Pos = new google.maps.LatLng(-31.94981479,115.79729688);
+				  var sensor1Marker = new google.maps.Marker({
+				      position: sensor1Pos,
+				      map: map,
+				      title:"Sensor 1"
+				  });
+
+					var contentString1 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 1</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.94981479,115.79729688</p>'+
+					    '</div>'+
+					    '</div>';
+					var info1window = new google.maps.InfoWindow({
+					    content: contentString1
+					});
+
+				var sensor2Pos = new google.maps.LatLng(-31.94992999,115.79882382);
+				  var sensor2Marker = new google.maps.Marker({
+				      position: sensor2Pos,
+				      map: map,
+				      title:"Sensor 2"
+				  });
+
+
+					var contentString2 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 2</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.94992999,115.79882382</p>'+
+					    '</div>'+
+					    '</div>';
+					var info2window = new google.maps.InfoWindow({
+					    content: contentString2
+					});
+				var sensor3Pos = new google.maps.LatLng(-31.94988447,115.80045003);
+				  var sensor3Marker = new google.maps.Marker({
+				      position: sensor3Pos,
+				      map: map,
+				      title:"Sensor 3"
+				  });
+				
+
+					var contentString3 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 3</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.94988447,115.80045003</p>'+
+					    '</div>'+
+					    '</div>';
+					var info3window = new google.maps.InfoWindow({
+					    content: contentString3
+					});
+
+				var sensor5Pos = new google.maps.LatLng(-31.95024906,115.80395056);
+				  var sensor5Marker = new google.maps.Marker({
+				      position: sensor5Pos,
+				      map: map,
+				      title:"Sensor 13"
+				  });
+
+				
+
+					var contentString5 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 13</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.95024906,115.80395056</p>'+
+					    '</div>'+
+					    '</div>';
+					var info3window = new google.maps.InfoWindow({
+					    content: contentString5
+					});
+
+
+				var sensor6Pos = new google.maps.LatLng(-31.9521664,115.80399509);
+				  var sensor6Marker = new google.maps.Marker({
+				      position: sensor6Pos,
+				      map: map,
+				      title:"Sensor 31"
+				  });
+
+					var contentString6 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 31</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.9521664,115.80399509</p>'+
+					    '</div>'+
+					    '</div>';
+					var info6window = new google.maps.InfoWindow({
+					    content: contentString6
+					});
+
+
+				var sensor7Pos = new google.maps.LatLng(-31.9511295,115.8022161);
+				  var sensor7Marker = new google.maps.Marker({
+				      position: sensor7Pos,
+				      map: map,
+				      title:"Sensor 10"
+				  });
+					var contentString7 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 10</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.9511295,115.8022161</p>'+
+					    '</div>'+
+					    '</div>';
+					var info7window = new google.maps.InfoWindow({
+					    content: contentString7
+					});
+
+
+
+				var sensor4Pos = new google.maps.LatLng(-31.94905997,115.80188283);
+				  var sensor4Marker = new google.maps.Marker({
+				      position: sensor4Pos,
+				      map: map,
+				      title:"Sensor 8"
+				  });
+
+					var contentString4 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 8</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.94905997,115.80188283</p>'+
+					    '</div>'+
+					    '</div>';
+					var info4window = new google.maps.InfoWindow({
+					    content: contentString4
+					});
+
+
+
+				var sensor8Pos = new google.maps.LatLng(-31.95113223,115.79648024);
+				  var sensor8Marker = new google.maps.Marker({
+				      position: sensor8Pos,
+				      map: map,
+				      title:"Sensor 28"
+				  });
+
+					var contentString8 = '<div id="content">'+
+					    '<div id="siteNotice">'+
+					    '</div>'+
+					    '<h1 id="firstHeading" class="firstHeading">Sensor 28</h1>'+
+					    '<div id="bodyContent">'+
+					    '<p>-31.95113223,115.79648024</p>'+
+					    '</div>'+
+					    '</div>';
+					var info8window = new google.maps.InfoWindow({
+					    content: contentString8
+					});
+
+		
+
+
+google.maps.event.addListener(sensor1Marker, 'click', function() {
+  info1window.open(map,sensor1Marker);
+});
+
+google.maps.event.addListener(sensor2Marker, 'click', function() {
+  info2window.open(map,sensor2Marker);
+});
+
+google.maps.event.addListener(sensor3Marker, 'click', function() {
+  info3window.open(map,sensor3Marker);
+});
+
+google.maps.event.addListener(sensor4Marker, 'click', function() {
+  info4window.open(map,sensor4Marker);
+});
+
+google.maps.event.addListener(sensor5Marker, 'click', function() {
+  info5window.open(map,sensor5Marker);
+});
+
+google.maps.event.addListener(sensor6Marker, 'click', function() {
+  info6window.open(map,sensor6Marker);
+});
+
+google.maps.event.addListener(sensor7Marker, 'click', function() {
+  info7window.open(map,sensor7Marker);
+});
+
+google.maps.event.addListener(sensor8Marker, 'click', function() {
+  info8window.open(map,sensor8Marker);
+});
+			}
+		</script>
+	</head>
+	<body onload="initialize()">
+		<div id="map_canvas" style="width:1000px; height:600px"></div>
+	</body>
+</html>

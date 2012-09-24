@@ -11,4 +11,5 @@
     <string name="title_activity_menu">MenuActivity</string>
     <string name="title_activity_main">SensorData</string>
     <string name="title_activity_select">SensorData</string>
+    <string name="title_activity_insertnode">Get GPS for Node</string>
 </resources>

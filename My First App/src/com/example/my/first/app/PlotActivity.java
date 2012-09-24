@@ -96,6 +96,12 @@ public class PlotActivity extends Activity {
 		txt1 = (TextView)findViewById(R.id.txtview1);
 		txt2 = (TextView)findViewById(R.id.txtview2);
 		txt3 = (TextView)findViewById(R.id.txtview3);
+		
+		//DEBUG -----------------------
+		txt1.setText("showing from " + (new SimpleDateFormat()).format(timeMin));
+		txt2.setText("to	 " + (new SimpleDateFormat()).format(timeMax));
+		//--------------------------
+		
 		for (int i=0;i<TEMP_COUNT;i++) {
 		//maybe do later, then save some resources by assuring size up front
 			tempLists[i]=new ArrayList<Float>();

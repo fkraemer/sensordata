@@ -56,7 +56,8 @@ public class MainActivity extends Activity {
 
 
 	public void insertNode(View view) {
-		finish(); //calls ondestroy then
+		 Intent myIntent = new Intent(this,InsertNodeActivity.class);
+		 startActivity(myIntent);
 	}
 
 	public void changeMetadata(View view) {

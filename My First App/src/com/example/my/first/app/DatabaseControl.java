@@ -27,7 +27,6 @@ public class DatabaseControl {
 	private final static String DATABASE_TABLE_PLATFORM="platform";	// has KEY_ID
 	public static final String KEY_LAT= "lat";
 	public static final String KEY_LON= "lon";
-	public static final String KEY_ELEV= "elev";
 	public static final String KEY_PERIOD= "period";
 	public static final String KEY_MOBILENO= "mobile_no";
 	public static final String KEY_DESCR= "description";
@@ -78,8 +77,8 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	private final static int DATABASE_VERSION=1;
 	
 	private static final String PLATFORM_CREATE="CREATE  TABLE IF NOT EXISTS " + DATABASE_TABLE_PLATFORM + " ( " +
-			KEY_ID+" INTEGER PRIMARY KEY AUTOINCREMENT,  "+ KEY_LAT +" INTEGER  ,  "+ KEY_LON +" INTEGER  ,  "+ KEY_ELEV +
-			" INTEGER  , "+ KEY_PERIOD +" INTEGER  ," + KEY_MOBILENO +" TEXT NOT NULL, "+ KEY_DESCR +" TEXT NOT NULL )"; 
+			KEY_ID+" INTEGER PRIMARY KEY AUTOINCREMENT,  "+ KEY_LAT +" INTEGER  ,  "+ KEY_LON +" INTEGER  ,  "+
+			KEY_PERIOD +" INTEGER  ," + KEY_MOBILENO +" TEXT NOT NULL, "+ KEY_DESCR +" TEXT NOT NULL )"; 
 	
 	private static final String SENSOR_CREATE="CREATE  TABLE IF NOT EXISTS  "+ DATABASE_TABLE_SENSOR +
 			"(   "+ KEY_ID +" INTEGER PRIMARY KEY AUTOINCREMENT ,  "+ KEY_OFFY +" INTEGER  , "+ KEY_OFFX +" INTEGER  , " + KEY_OFFZ +
@@ -207,8 +206,8 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 	
 	//this inserts a platform, 4sensors, 9 subsensors in a default manner
-	public long insertPlatformDefault(int lat, int lon, int elev, int period, String mobileNo,String descr) {
-		long platformId = insertPlatform(lat, lon, elev, period, mobileNo,descr);
+	public long insertPlatformDefault(int lat, int lon, int period, String mobileNo,String descr) {
+		long platformId = insertPlatform(lat, lon, period, mobileNo,descr);
 		for (int i=0;i<4;i++)
 			{
 			long sensorId=insertSensor(0, 0, 0,(int) platformId);
@@ -249,9 +248,9 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		Calendar c = Calendar.getInstance();				//not sure about use in different timezones, might change timestamps to local times
 		c.set(data[0][1]+2000, data[0][2]-1, data[0][3], data[0][4], data[0][5]);
 		long timestamp=c.getTimeInMillis();
-		long timeOffset = data[0][0];
+		long timeOffset = data[0][0];			//offset in minutes
 		for (int i = 0; i < rowCount-1; i++) {
-			times[i] = timestamp + timeOffset * i;
+			times[i] = timestamp + timeOffset * i*60*1000;		//timestamps are in millis
 		}
 		
 		Cursor curs=getSubsenorsByPlatform(platformId);
@@ -286,23 +285,21 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	
 	//--------------------------------------------------------------------------------------------------------------------------------
 	//methods for insertion into database
-	private long insertPlatform(int lat, int lon, int elev,int period, String mobileNo, String descr)
+	private long insertPlatform(int lat, int lon,int period, String mobileNo, String descr)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_LAT, lat);
 		cont.put(KEY_LON, lon);
-		cont.put(KEY_ELEV, elev);
 		cont.put(KEY_PERIOD, period);
 		cont.put(KEY_MOBILENO, mobileNo);
 		cont.put(KEY_DESCR, descr);
 		return db.insert(DATABASE_TABLE_PLATFORM, null, cont);
 	}
 	
-	public boolean updatePlatform(long id, int lon, int lat, int elev,int period, String mobileNo, String descr) {
+	public boolean updatePlatform(long id, int lon, int lat,int period, String mobileNo, String descr) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_LAT, lat);
 		cont.put(KEY_LON, lon);
-		cont.put(KEY_ELEV, elev);
 		cont.put(KEY_PERIOD, period);
 		cont.put(KEY_MOBILENO, mobileNo);
 		cont.put(KEY_DESCR, descr);
@@ -417,8 +414,11 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 	
 	public Cursor getMeasurement(long subsensorId) {
-		return db.query(DATABASE_TABLE_MEASUREMENT,null,
+		Cursor curs = db.query(DATABASE_TABLE_MEASUREMENT,null,
 				KEY_SUBSENSORID+" = "+subsensorId,null,null,null,KEY_TIMESTAMP+" ASC",null);
+		curs.moveToFirst();
+		return curs;
+	
 	}
 }
 
