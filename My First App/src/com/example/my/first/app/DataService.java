@@ -186,6 +186,8 @@ public class DataService extends Service {
     }
 	
 	//****************************************************************************************************
+
+	//****************************************************************************************************
 	//public methods used by bound activities
 	
 	public boolean backupToExternal() {
@@ -199,6 +201,9 @@ public class DataService extends Service {
 
 			File file= new File(DB_PATH_EXTERNAL,DatabaseControl.DATABASE_NAME);
 			db=db.updateDatabase(new FileInputStream(file));
+			
+			//TODO process the new database ==> bind numbers, but which ones on multiple numbers ??
+			//								==> numbers of interest add
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -341,6 +346,11 @@ public class DataService extends Service {
 		BufferedReader in;
 		String [] stringStore=new String[5];
 		try {
+			File file= new File(getExternalFilesDir(null)+"/lastState.txt");
+			if (!file.exists()) {
+				saveStateToFile(); // called at the very first startup if file doesnt exist already
+				return;//then exiting here
+			}
 			in = new BufferedReader(new InputStreamReader(openFileInput("lastState")));
 			//reading line by line
 			int count=0;
@@ -351,9 +361,8 @@ public class DataService extends Service {
 			}
 			in.close();
 		} catch (FileNotFoundException e1) {
-			saveStateToFile(); // called at the very first startup if file doesnt exist already
 			e1.printStackTrace();
-			return;	//then exiting here, cause
+			return;	
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
@@ -432,8 +441,8 @@ public class DataService extends Service {
 		//writing data to file, limitted to 3string right now!
 		BufferedWriter out;
 		try {
-			//MODE_PRIVATE creates file, if it does not exist now
-			out = new BufferedWriter(new OutputStreamWriter(openFileOutput(	"lastState", MODE_PRIVATE))); // mode_private overwrites old file
+			//creates file, if it does not exist now
+			out = new BufferedWriter(new FileWriter(getExternalFilesDir(null)+"/lastState.txt",false)); // "false" overwrites old file
 			for (int i = 0; i < 3; i++) {
 				out.write(stringStore[i]);
 			}

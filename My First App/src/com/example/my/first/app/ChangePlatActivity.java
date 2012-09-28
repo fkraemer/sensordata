@@ -149,13 +149,9 @@ public class ChangePlatActivity extends Activity {
 		super.onStart();
 		mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 		locListener = new LocationListener() {
-			@Override
 			public void onStatusChanged(String provider, int status,Bundle extras) {}
-			@Override
 			public void onProviderEnabled(String provider) {}
-			@Override
 			public void onProviderDisabled(String provider) {}
-			@Override
 			public void onLocationChanged(Location location) {
 				mobileLocation = location;
 				
@@ -411,7 +407,6 @@ public class ChangePlatActivity extends Activity {
 			 builder.setMessage("Please enable the GPS module.")
 			 	.setNeutralButton("Ok", new OnClickListener() {
 					
-					@Override
 					public void onClick(DialogInterface dialog, int which) {
 						dialog.cancel();	//just closes the dialog
 						
