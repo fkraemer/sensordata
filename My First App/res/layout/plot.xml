@@ -9,37 +9,47 @@
     android:layout_height="fill_parent" 
     android:orientation="vertical">    
 
+	<LinearLayout
+       android:id="@+id/temperatureLayout"
+        android:layout_width="match_parent"
+	   	android:layout_height="200px"
+	    android:orientation="vertical">    
         <com.androidplot.xy.XYPlot
-        android:id="@+id/temperatureXYPlot"
+    		android:layout_width="fill_parent"
+		    android:layout_height="fill_parent" 
+	        android:id="@+id/temperatureXYPlot"
+	        android:layout_marginTop="0dp"
+	        android:layout_marginLeft="10dp"
+	        android:layout_marginRight="10dp"
+	        title="Temperature Data" />
+	</LinearLayout>
+    <TextView 
+        android:id="@+id/txtview1"
         android:layout_width="match_parent"
-        android:layout_height="250dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
-        title="Temperature Data" />
-        
-        <TextView 
-            android:id="@+id/txtview1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-        <TextView 
-            android:id="@+id/txtview2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-        <TextView 
-            android:id="@+id/txtview3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    
-    <com.androidplot.xy.XYPlot
-        android:id="@+id/moistureXYPlot"
+        android:layout_height="wrap_content"/>
+    <TextView 
+        android:id="@+id/txtview2"
         android:layout_width="match_parent"
-        android:layout_height="250dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
-        title="Moisture Data" />
-    
+        android:layout_height="wrap_content"/>
+    <TextView 
+        android:id="@+id/txtview3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+   <LinearLayout
+       android:id="@+id/moistureLayout"
+        android:layout_width="match_parent"
+	   	android:layout_height="200px"
+	    android:orientation="vertical">    
+        <com.androidplot.xy.XYPlot
+	   		 android:id="@+id/moistureXYPlot"
+		   	android:layout_width="fill_parent"
+			android:layout_height="fill_parent" 
+	      android:layout_marginTop="10dp"
+	      android:layout_marginLeft="10dp"
+	      android:layout_marginRight="10dp"
+	      android:layout_marginBottom="0dp"
+	      title="Moisture Data" />
+    </LinearLayout>
     
 </LinearLayout>
 

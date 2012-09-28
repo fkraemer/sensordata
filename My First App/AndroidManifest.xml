@@ -40,9 +40,9 @@
                 android:value="com.example.my.first.app.MainActivity" />
         </activity>
         
-        <activity
-            android:name=".InsertNodeActivity"
-            android:label="@string/title_activity_insertnode" >
+         <activity
+            android:name=".DatabaseActivity"
+            android:label="@string/title_activity_database" >
             <intent-filter>
                 <action android:name="com.example.my.first.app.SELECT" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -52,6 +52,7 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.my.first.app.MainActivity" />
         </activity>
+        
         
         <activity
             android:name=".ChooseTimeActivity"
@@ -77,32 +78,6 @@
                 android:value="com.example.my.first.app.ChoosePlotActivity" />
         </activity>
         
-        <activity
-            android:name=".SelectActivity"
-            android:label="@string/title_activity_select" >
-            <intent-filter>
-                <action android:name="com.example.my.first.app.SELECT" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.my.first.app.MainActivity" />
-
-        	</activity>
-        	
-           <activity          
-           	 android:name=".MenuActivity"
-           	 android:label="@string/title_activity_menu" >
-           	 <intent-filter>
-            	    <action android:name="com.example.my.first.app.MENU" />
-                	<category android:name="android.intent.category.DEFAULT" />
-            	</intent-filter>
-            <meta-data 
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.my.first.app.MainActivity" />
-        	</activity>
         	
    			<activity          
            	 android:name=".PlotActivity"

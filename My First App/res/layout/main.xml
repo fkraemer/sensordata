@@ -18,8 +18,8 @@
                 android:id="@+id/plotButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:onClick="plotPlots"
-                android:text="Plot most recent" />
+                android:onClick="databaseAct"
+                android:text="Database actions" />
 
             <ListView
                 android:id="@+id/startListView"

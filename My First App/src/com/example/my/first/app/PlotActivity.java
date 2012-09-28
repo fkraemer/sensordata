@@ -6,28 +6,18 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.LabeledIntent;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.RectF;
-
-import com.androidplot.series.XYSeries;
-import com.androidplot.ui.SizeMetrics;
-import com.androidplot.ui.widget.TitleWidget;
-import com.androidplot.util.ValPixConverter;
-import com.androidplot.xy.*;
-
-import android.util.FloatMath;
-import android.view.Menu;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.View.OnTouchListener;
+import android.util.DisplayMetrics;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.sql.Time;
+import com.androidplot.series.XYSeries;
+import com.androidplot.xy.*;
+
+
 import java.text.DecimalFormat;
 import java.text.FieldPosition;
 import java.text.Format;
@@ -36,16 +26,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
-import java.util.TimeZone;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 
-import com.example.my.first.app.ChooseTimeActivity.getTimeTask;
-import com.example.sensor.data.DataSet;
-import com.example.sensor.data.DataStorage;
 
 @TargetApi(9)
 public class PlotActivity extends Activity {
@@ -53,6 +36,7 @@ public class PlotActivity extends Activity {
 	final private float MIN_X_DISTANCE = 2.0f * 60 * 60 * 1000; // minimum of shown time range (in millis)
 	final private float TEMP_MIN_Y_DISTANCE = 3.0f; // minimum of shown temperature Range
 	final private float MOIST_MIN_Y_DISTANCE = 3.0f; // minimum of shown temperature Range
+	private float MAX_SHOWN_X_RANGE = 48.0f*60*60*1000; // default 2days, non-final since adjustable depending on screen
 
 	private XYPlot temperatureSimpleXYPlot;
 	private XYPlot moistureSimpleXYPlot;
@@ -85,21 +69,59 @@ public class PlotActivity extends Activity {
 	// very simple, Y-values only, filling the temperature plot
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
 		Bundle extras =getIntent().getExtras();
 		platformId=extras.getLong("platformId");
 		timeMin=extras.getLong("minTime");
 		timeMax=extras.getLong("maxTime");
-
 		setContentView(R.layout.plot);
 		scroll = (LockableScrollView) findViewById(R.id.scroll);
+		temperatureSimpleXYPlot = (XYPlot) findViewById(R.id.temperatureXYPlot);
+		moistureSimpleXYPlot = (XYPlot) findViewById(R.id.moistureXYPlot);
 		txt1 = (TextView)findViewById(R.id.txtview1);
 		txt2 = (TextView)findViewById(R.id.txtview2);
 		txt3 = (TextView)findViewById(R.id.txtview3);
 		
+		//------ adjust to individual height:    ------------------------
+		int plotheight=200;
+		DisplayMetrics displaymetrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+		int height = displaymetrics.heightPixels;
+		int width = displaymetrics.widthPixels;
+		//Statusbar takes up different height depending on device screen density 
+		int statusBarHeight =(int) Math.ceil(25 * displaymetrics.density);
+		//fit one or two plots, depending on screen size, for more than 720px no scrolling should occur
+		if (height>=720) {
+			plotheight=(int) Math.round((height-statusBarHeight-50)/2);	//extra 50px inbetween
+		} else if (height>=480) {
+			plotheight=height-statusBarHeight-100;	//gives just oneplot a readable size, probably for 480px devices: 320px
+		} else { // for 320px and smaller there needs to be space for scrolling
+			plotheight=height-statusBarHeight-50;
+		}
+		LinearLayout templay=(LinearLayout) findViewById(R.id.temperatureLayout);
+		LinearLayout moistlay=(LinearLayout) findViewById(R.id.moistureLayout);
+		LinearLayout.LayoutParams lp= new LinearLayout.LayoutParams(
+				android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 
+				plotheight);
+		templay.setLayoutParams(lp);
+		moistlay.setLayoutParams(lp);
+		temperatureSimpleXYPlot.setMinimumHeight(plotheight);
+		moistureSimpleXYPlot.setMinimumHeight(plotheight);
+		//adjust hown x range according to width: just one and half day for <480px, 2.5 for > 480px
+		if (width>=720) {
+			MAX_SHOWN_X_RANGE=72.0f*60*60*1000;
+		} else if (width>480){
+			MAX_SHOWN_X_RANGE=48.0f*60*60*1000;
+		} else if (width==480){
+			MAX_SHOWN_X_RANGE=24.0f*60*60*1000;
+		} else{
+			MAX_SHOWN_X_RANGE=12.0f*60*60*1000;
+		}
+		//--------------------------------------------------------------
+		
 		//DEBUG -----------------------
 		txt1.setText("showing from " + (new SimpleDateFormat()).format(timeMin));
 		txt2.setText("to	 " + (new SimpleDateFormat()).format(timeMax));
+		txt3.setText(Integer.toString(height));
 		//--------------------------
 		
 		for (int i=0;i<TEMP_COUNT;i++) {
@@ -110,8 +132,6 @@ public class PlotActivity extends Activity {
 			//maybe do later, then save some resources by assuring size up front
 			moistLists[i]=new ArrayList<Float>();
 		}
-		temperatureSimpleXYPlot = (XYPlot) findViewById(R.id.temperatureXYPlot);
-		moistureSimpleXYPlot = (XYPlot) findViewById(R.id.moistureXYPlot);
 
 
 		//set plot properties
@@ -144,13 +164,15 @@ public class PlotActivity extends Activity {
 		temperatureSimpleXYPlot.setDomainStep(XYStepMode.INCREMENT_BY_VAL,  60*60*1000);			//set grid line difference with 1hour difference
 		temperatureSimpleXYPlot.disableAllMarkup();
 
-		moistureSimpleXYPlot.getGraphWidget().setTicksPerRangeLabel(2);
-		moistureSimpleXYPlot.getGraphWidget().setTicksPerDomainLabel(2);
+		//moistureSimpleXYPlot.getGraphWidget().setTicksPerRangeLabel(2);
+		//moistureSimpleXYPlot.getGraphWidget().setTicksPerDomainLabel(2);
 		moistureSimpleXYPlot.getGraphWidget().setRangeValueFormat(
-				new DecimalFormat("###.#"));
+				new DecimalFormat("###"));
 		moistureSimpleXYPlot.getGraphWidget().setDomainValueFormat(timeFormat);
-		temperatureSimpleXYPlot.getTitleWidget().setWidth(300f);
+		moistureSimpleXYPlot.getTitleWidget().setWidth(300f);
 		moistureSimpleXYPlot.setRangeLabel("Moisture");
+		moistureSimpleXYPlot.setRangeStep(XYStepMode.INCREMENT_BY_VAL,  20);
+		moistureSimpleXYPlot.setDomainStep(XYStepMode.INCREMENT_BY_VAL,  60*60*1000);			//set grid line difference with 1hour difference
 		moistureSimpleXYPlot.setDomainLabel("Time");
 		moistureSimpleXYPlot.disableAllMarkup();
 				}
@@ -258,7 +280,7 @@ public class PlotActivity extends Activity {
 			//setting the absolute borders of the plot
 			ABS_X_MIN=minXY.x;
 			ABS_X_MAX=maxXY.x;	//shown time(y-axis) becomes a maximum of 48hours
-			MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<48.0f*60*60*1000) ? (ABS_X_MAX-ABS_X_MIN) : 48.0f*60*60*1000;
+			MAX_X_DISTANCE=((ABS_X_MAX-ABS_X_MIN)<MAX_SHOWN_X_RANGE) ? (ABS_X_MAX-ABS_X_MIN) : MAX_SHOWN_X_RANGE;
 			temperatureSimpleXYPlot.setDomainBoundaries(minXY.x,maxXY.x, BoundaryMode.FIXED);	//start with most recent (max 48)hours
 	
 			plotTouch tempTouch= new plotTouch(temperatureSimpleXYPlot,ABS_X_MIN,ABS_X_MAX,ABS_Y_MIN,ABS_Y_MAX,
@@ -303,12 +325,13 @@ public class PlotActivity extends Activity {
 					Arrays.asList(new Long[] { midnights[i], midnights[i] }),
 					Arrays.asList(new Float[] { -5f, 1005f }), "");
 
+			//make the lines red:
 			LineAndPointFormatter series1Format = new LineAndPointFormatter(
 					Color.RED, // line
 					Color.RED, // point color
 					null); // fill Color
 			Paint paint = series1Format.getLinePaint();
-			paint.setStrokeWidth(1);
+			paint.setStrokeWidth(1);	//quite thin
 			series1Format.setLinePaint(paint);
 
 			temperatureSimpleXYPlot.addSeries(midnightSeriesTemp, series1Format);
@@ -320,7 +343,7 @@ public class PlotActivity extends Activity {
 
 	private Long[] lookForMidnight() {		
 		// compute number of days:
-		int difDays = (int) (timeMax - timeMin) / (24 * 60 * 60 * 1000);
+		int difDays = (int) ((timeMax - timeMin) / (24 * 60 * 60 * 1000));
 		Long[] result = new Long[difDays+1];
 		for (int i = 0; i < difDays+1; i++) {
 			Calendar c = Calendar.getInstance();

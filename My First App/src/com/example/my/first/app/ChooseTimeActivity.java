@@ -59,13 +59,15 @@ public class ChooseTimeActivity extends Activity {
 		Bundle extras = getIntent().getExtras();
 		platformId=extras.getLong("platformId");
 		//Setting up ListView
-		listOptions=new String[]{"last day","last week","last day in database","last week in database", "everything"};
 		list = (ListView) findViewById(R.id.chooseTimeList);
-		list.setAdapter(new ArrayAdapter<String>(cx, android.R.layout.simple_list_item_single_choice, listOptions));
-		
+		listOptions=new String[]{"last day",
+				"last week",
+				"last day in database",
+				"last week in database", 
+				"everything"};
+		list.setAdapter(new ArrayAdapter<String>(cx,
+				android.R.layout.simple_list_item_checked, listOptions));	
 			
-				
-				
         // Bind to LocalService, happens in UI-thread, watch time delays !!
         Intent intent =  new Intent(this, DataService.class);
 		bindService(intent, mConnect,0);
@@ -160,7 +162,6 @@ public class ChooseTimeActivity extends Activity {
         }
         wasSetOnce=false;	//flag to execute listupdate on next startup
     }
-
 
 	protected void onResume() {
 		super.onResume();

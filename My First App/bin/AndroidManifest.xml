@@ -7,11 +7,15 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>"
     <uses-permission android:name="android.permission.READ_SMS"/>"
     <uses-permission android:name="android.permission.WRITE_SMS"/>"
+    <!-- allow backing up and reading data -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
+    <!--  allow accessing GPS module -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     
     
     <uses-sdk
-        android:minSdkVersion="8"
+        android:minSdkVersion="9"
         android:targetSdkVersion="15" />
 
 
@@ -20,54 +24,60 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-        <service android:name=".DataService" />
-        <activity          
-           	 android:name=".ChoosePlatActivity"
-           	 android:label="@string/title_activity_chooseplat" >
-           	 <intent-filter>
-            	    <action android:name="com.example.my.first.app.SELECT" />
-                	<category android:name="android.intent.category.DEFAULT" />
-            	</intent-filter>
-            <meta-data 
+    <service android:enabled="true" android:name=".DataService" />
+   
+     
+        <activity
+            android:name=".ChoosePlatActivity"
+            android:label="@string/title_activity_chooseplat" >
+            <intent-filter>
+                <action android:name="com.example.my.first.app.SELECT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.my.first.app.MainActivity" />
-        	</activity>
-        	
-        	<activity          
-           	 android:name=".ChangePlatActivity"
-           	 android:label="@string/title_activity_changeplat" >
-           	 <intent-filter>
-            	    <action android:name="com.example.my.first.app.SELECT" />
-                	<category android:name="android.intent.category.DEFAULT" />
-            	</intent-filter>
-            <meta-data 
+        </activity>
+        
+         <activity
+            android:name=".DatabaseActivity"
+            android:label="@string/title_activity_database" >
+            <intent-filter>
+                <action android:name="com.example.my.first.app.SELECT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.my.first.app.MainActivity" />
+        </activity>
+        
+        
+        <activity
+            android:name=".ChooseTimeActivity"
+            android:label="@string/title_activity_choosetime" >
+            <intent-filter>
+                <action android:name="com.example.my.first.app.SELECT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter><meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.my.first.app.MainActivity" />
+        </activity>
+        
+        <activity
+            android:name=".ChangePlatActivity"
+            android:label="@string/title_activity_changeplat" >
+            <intent-filter>
+                <action android:name="com.example.my.first.app.SELECT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.my.first.app.ChoosePlotActivity" />
-        	</activity>
-        	
-           <activity          
-           	 android:name=".SelectActivity"
-           	 android:label="@string/title_activity_select" >
-           	 <intent-filter>
-            	    <action android:name="com.example.my.first.app.SELECT" />
-                	<category android:name="android.intent.category.DEFAULT" />
-            	</intent-filter>
-            <meta-data 
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.my.first.app.MainActivity" />
-        	</activity>
-        	
-           <activity          
-           	 android:name=".MenuActivity"
-           	 android:label="@string/title_activity_menu" >
-           	 <intent-filter>
-            	    <action android:name="com.example.my.first.app.MENU" />
-                	<category android:name="android.intent.category.DEFAULT" />
-            	</intent-filter>
-            <meta-data 
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.my.first.app.MainActivity" />
-        	</activity>
+        </activity>
+        
         	
    			<activity          
            	 android:name=".PlotActivity"

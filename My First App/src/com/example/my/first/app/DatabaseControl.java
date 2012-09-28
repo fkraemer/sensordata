@@ -1,6 +1,13 @@
-package com.example.my.first.app;
+ package com.example.my.first.app;
 
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Calendar;
 
 import com.example.sensor.data.DataSet;
@@ -12,6 +19,7 @@ import android.database.CursorIndexOutOfBoundsException;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.util.Log;
@@ -22,6 +30,8 @@ public class DatabaseControl {
 
 
 
+	public final static String DATABASE_NAME="localsensorDB";
+	
 	public static final String KEY_ID = "_id";
 	
 	private final static String DATABASE_TABLE_PLATFORM="platform";	// has KEY_ID
@@ -73,7 +83,6 @@ public class DatabaseControl {
  */
 private static class DatabaseHelper extends SQLiteOpenHelper {
 
-	private final static String DATABASE_NAME="localsensorDB";
 	private final static int DATABASE_VERSION=1;
 	
 	private static final String PLATFORM_CREATE="CREATE  TABLE IF NOT EXISTS " + DATABASE_TABLE_PLATFORM + " ( " +
@@ -100,9 +109,92 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 			"   FOREIGN KEY ("+ KEY_SUBSENSORID +" )    REFERENCES "+ DATABASE_TABLE_SUBSENSOR +" ("+ KEY_ID +" )" +
 			"    ON DELETE CASCADE    ON UPDATE CASCADE PRIMARY KEY ( "+KEY_TIMESTAMP +" , "+KEY_SUBSENSORID +" ))";
 	
+	private String DB_PATH_EXTERNAL;
+	private String DB_PATH_LOCAL;
+	private Context context;
+	private boolean isOpen;
+	
 	public DatabaseHelper(Context context) {
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+		DB_PATH_EXTERNAL=context.getExternalFilesDir(null)+"/databases";
+		//DB_PATH_LOCAL = "/data/data/" + context.getPackageName() + "/databases";
+		this.context=context;
 	}
+	
+	public SQLiteDatabase updateDatabase(InputStream inp) {
+		if (isOpen) {	//for updates while running
+			close();
+		}
+		try {
+			File file= context.getDatabasePath(DATABASE_NAME);
+			CopyDB( inp,new FileOutputStream(file));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+		isOpen=true;
+		return super.getWritableDatabase();
+	}
+	
+	@Override
+	public SQLiteDatabase getWritableDatabase() {
+		File file = context.getDatabasePath(DATABASE_NAME);
+		if (!file.exists() && checkDataBaseExternal()) {		//acts on e.g. first startup
+			//now copy from external backed up data base
+			try {
+				File file2= new File(DB_PATH_EXTERNAL,DATABASE_NAME);
+				return updateDatabase(new FileInputStream(file2));
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		isOpen=true;
+		return super.getWritableDatabase();
+	}
+
+	
+
+	@Override
+	public synchronized void close() {
+		isOpen=false;
+		super.close();
+	}
+
+	private boolean checkDataBaseExternal(){
+		File file= new File(DB_PATH_EXTERNAL,DATABASE_NAME);
+		return file.exists();
+		}
+	
+	public boolean backupExternal() {
+		try {
+			InputStream inputStream= new FileInputStream(context.getDatabasePath(DATABASE_NAME));
+			File file= new File(DB_PATH_EXTERNAL);
+			if (!file.exists()) {
+				file.mkdir();
+			}
+			file = new File(DB_PATH_EXTERNAL,DATABASE_NAME);
+			OutputStream outputStream=new FileOutputStream(file);	
+			CopyDB(inputStream,outputStream);
+		}catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	private  void CopyDB(InputStream inputStream, OutputStream outputStream) throws IOException {	
+		//---copy 1K bytes at a time---	
+		byte[] buffer = new byte[1024];	
+		int length;	
+		while ((length = inputStream.read(buffer)) > 0) {	
+			outputStream.write(buffer, 0, length);	
+		}		
+		outputStream.flush();
+		outputStream.close();
+		inputStream.close();	
+	}
+	
 
 		@Override
 	public void onCreate(SQLiteDatabase db) {
@@ -143,8 +235,18 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return this;
 	}
 	
+	public DatabaseControl updateDatabase(InputStream inp) {
+		db=dbHelper.updateDatabase(inp);
+		return this;
+	}
+		
+	
 	public void close() {
 		dbHelper.close();
+	}
+	
+	public boolean backupExternal()  {
+		return dbHelper.backupExternal();
 	}
 	
 	//makes sure Phenomenas are set, Moisture is the first, Temperature 2nd, 3rd voltage
@@ -157,9 +259,6 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		}
 	}
 	//TODO  test creating database, fill with some test data
-	//insert phenomenas by default
-	// create inserting methods
-	//create query methods. using query, rawquery or sqlitequerybuilder
 	
 	//helper-method for getting rows of all tables with Ids
 	private Cursor getRowById(long id, String selectedTable) throws SQLException {
@@ -237,9 +336,9 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 	}
 	
 	//expecting raw decoded data with the rowcount being the number of measurements and the number of columns being the number of sensors
-	// the incoming data is considered to be too big by the factor of 10
+	// the incoming data will be resized with "factor"
 	//inserts the 9 rows of Measurements for the given platform, calculates timestamps from periods 
-	public void putMeasurements(int [][] data, int platformId) {
+	public void putMeasurements(int [][] data, float factor, long platformId) {
 		int rowCount=data.length;
 		int columnCount=data[1].length;
 		
@@ -257,7 +356,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		for (int i =0; i<columnCount; i++) {
 		float [] values= new float[rowCount-1];	//1st row is anchor
 			for (int j=1; j<rowCount;j++) {
-				values[j-1]=data[j][i] / 10;	// dividing by 10! column becomes row to be inserted into database
+				values[j-1]=data[j][i] * factor;	// resizing with factor, column becomes row to be inserted into database
 			}
 			insertMeasurement((int) curs.getLong(0),values,times);
 			curs.moveToNext();
@@ -315,7 +414,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return getRowById(id, DATABASE_TABLE_PLATFORM);
 	}
 	
-	private long insertSensor( int offX, int offY, int offZ, int platform_id) {
+	private long insertSensor( int offX, int offY, int offZ, long platform_id) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_OFFX, offX);
 		cont.put(KEY_OFFY, offY);
@@ -324,7 +423,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return db.insert(DATABASE_TABLE_SENSOR, null, cont);
 	}
 
-	public boolean updateSensor(long id, int offX, int offY, int offZ, int platform_id) {
+	public boolean updateSensor(long id, int offX, int offY, int offZ, long platform_id) {
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_OFFX, offX);
 		cont.put(KEY_OFFY, offY);
@@ -342,7 +441,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return getRowById(id, DATABASE_TABLE_SENSOR);
 	}
 	
-	private long insertSubsensor( int phenomenaId, int sensorId)
+	private long insertSubsensor( long phenomenaId, long sensorId)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_SENSORID, sensorId);
@@ -350,7 +449,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		return db.insert(DATABASE_TABLE_SUBSENSOR, null, cont);
 	}
 	
-	public boolean updateSubsensor(long id, int phenomenaId, int sensorId)
+	public boolean updateSubsensor(long id, long phenomenaId, long sensorId)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_SENSORID, sensorId);
@@ -378,7 +477,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 		
 	}
 	
-	public boolean updatePhenomena(long id, String unit, float min, float max, int sensorId)
+	public boolean updatePhenomena(long id, String unit, float min, float max, long sensorId)
 	{
 		ContentValues cont = new ContentValues();
 		cont.put(KEY_ID, id);
@@ -397,7 +496,7 @@ private static class DatabaseHelper extends SQLiteOpenHelper {
 			return getRowById(id, DATABASE_TABLE_PHENOMENA);
 	}
 		
-	private void insertMeasurement(int subsensorId, float [] values, long [] timestamps) {
+	private void insertMeasurement(long subsensorId, float [] values, long [] timestamps) {
 		ContentValues val;
 		for (int i=0; i<values.length; i++) {
 			val= new ContentValues();

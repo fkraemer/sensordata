@@ -9,7 +9,8 @@ import android.widget.Button;
 public class MainActivity extends Activity {
 
 	//sets numbers to be recognized as platformnumbers
-	public static final String[] NUMBERSOFINTEREST = { "+61431220285","+61415361829" };//TODO
+	//these are default numbers, they can also be added through the "insert new node" button
+	public static final String[] NUMBERSOFINTEREST = { "+61431220285","+61415361829" };
 	//sets the time between to checks of the inbox:
 	public static final int CHECK_SMS_PERIOD = 10000;
 
@@ -53,10 +54,16 @@ public class MainActivity extends Activity {
 		//intent.putExtra("platformId",new Long(6));
 		//startActivity(intent);
 	}
+	
+	public void databaseAct(View view) {
+		Intent myIntent = new Intent(this,DatabaseActivity.class);
+		 startActivity(myIntent);
+	}
 
 
 	public void insertNode(View view) {
-		 Intent myIntent = new Intent(this,InsertNodeActivity.class);
+		 Intent myIntent = new Intent(this,ChangePlatActivity.class);
+		 myIntent.putExtra("platformId", -1L);		//showing the activity to create a new platform
 		 startActivity(myIntent);
 	}
 

@@ -115,13 +115,7 @@
                         android:text="Latitude"
                         android:textAppearance="?android:attr/textAppearanceSmall" />
 
-                    <TextView
-                        android:id="@+id/textView50"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Elevation"
-                        android:textAppearance="?android:attr/textAppearanceSmall" />
+              
                 </LinearLayout>
 
                 <LinearLayout
@@ -160,14 +154,13 @@
                         android:layout_height="wrap_content"
                         android:ems="10"
                         android:inputType="number" />
-
-                    <EditText
-                        android:id="@+id/editText51"
+                    
+                    <Button 
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ems="10"
-                        android:inputType="number" />
+                        android:layout_height="wrap_content" 
+                        android:onClick="getGPS"
+                        android:text="Update GPS"  />
+                    
                 </LinearLayout>
             </LinearLayout>
 

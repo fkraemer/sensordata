@@ -135,7 +135,7 @@ public class ChangePlatActivity extends Activity {
 		Bundle extras =getIntent().getExtras();
 		platformId=extras.getLong("platformId");
 		if (platformId==-1) {
-			newPlat=true;
+			newPlat=true;		//case creating an all new platform
 		}
 
 		//connecting to dataService
@@ -192,19 +192,26 @@ public class ChangePlatActivity extends Activity {
 				e.printStackTrace();
 			}
 			dataService=mConnect.getService();
-			if (platformId!=-1)
+			 // case NEW NODE
+			//done in postexecute
+			return null;
+		}
+	
+		//option to update progressbar via this thread
+		protected void onPostExecute(Void result) {
+			//save the Metadata locally: get from existing platform or fill with default values
+			if (!newPlat)
 			{
 		
 				//getting the current Metadata from Database
 				platformCursor = dataService.getPlatform(platformId);
 				sensorCursor = dataService.getSensorsByPlatformId(platformId);
 				//bind cursor lifecycle to activity
-	
-						startManagingCursor(platformCursor);
 				startManagingCursor(platformCursor);
+				startManagingCursor(sensorCursor);
 				//saving Metadata locally, changed data gets written into the newMetadata fields
 				mobileNo=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_MOBILENO));
-				isReceiving=dataService.platformIdIsBound((int)platformId);
+				isReceiving=dataService.platformIdIsBound((int)platformId);	//prepare the toggle-button
 				
 				platformDescriptionOld=platformDescriptionNew=platformCursor.getString(platformCursor.getColumnIndex(DatabaseControl.KEY_DESCR));
 				platformMetadataOld[0]=platformMetadataNew[0]=platformCursor.getInt(platformCursor.getColumnIndex(DatabaseControl.KEY_PERIOD));	
@@ -214,7 +221,7 @@ public class ChangePlatActivity extends Activity {
 				//prepare the sensors
 				for (int i=0;i<4;i++) {	
 					if (sensorCursor.getCount()<sensorCursor.getPosition()) {		//catches rare wrong cursor indexes
-						break;
+						sensorCursor.moveToFirst();
 					}
 					sensorIds[i]=sensorCursor.getLong(sensorCursor.getColumnIndex(DatabaseControl.KEY_ID));
 					sensorMetadataOld[i*3]=sensorCursor.getInt(sensorCursor.getColumnIndex(DatabaseControl.KEY_OFFX));
@@ -223,20 +230,12 @@ public class ChangePlatActivity extends Activity {
 					sensorCursor.moveToNext();
 				}
 				sensorMetadataNew=Arrays.copyOf(sensorMetadataOld, 12);
-			}  // case NEW NODE
-			//done in postexecute
-			return null;
-		}
-	
-		//option to update progressbar via this thread
-		protected void onPostExecute(Void result) {
-			//displaying Metadata
-			if (newPlat){
+			} else	if (newPlat){
 				//set flag for postexecute
 				showDialog(DIALOG_NEW_NODE);	//getting mobile
 				//inserting defaults
 				
-				isReceiving=true;
+				isReceiving=true;	//this is set upon saving
 				
 				platformDescriptionOld=platformDescriptionNew="New Node";
 				platformMetadataOld[0]=platformMetadataNew[0]=30;	
@@ -252,9 +251,6 @@ public class ChangePlatActivity extends Activity {
 			}
 				sensorMetadataNew=Arrays.copyOf(sensorMetadataOld, 12);
 			}
-			setPlatformMetadata();
-			setSensorMetadata();
-			
 			//setting up togglebutton, done here to be in UI thread
 			if (isReceiving) {
 				receivesButton.setChecked(true);
@@ -271,6 +267,12 @@ public class ChangePlatActivity extends Activity {
 				}
 			});
 			//-----------------------------listener end---------------------------------------
+	
+			//sets all the textviews
+			setPlatformMetadata();
+			setSensorMetadata();
+			
+		
 		}	       
     }
 		
@@ -385,7 +387,8 @@ public class ChangePlatActivity extends Activity {
 		 break;
 		 case (DIALOG_NEW_NODE):
 			// Set an EditText view to get user input 
-			final EditText input = new EditText(this);
+			final EditText input = (new EditText(this));
+		 	input.setText("+");
 
 			 builder.setMessage("Provide the mobile number: +##########")
 			 	.setView(input)
@@ -403,13 +406,26 @@ public class ChangePlatActivity extends Activity {
 						ChangePlatActivity.this.finish();
 					}
 				}); 
-		 break;
+			 break;
+		 case (DIALOG_NO_PROVIDER):
+			 builder.setMessage("Please enable the GPS module.")
+			 	.setNeutralButton("Ok", new OnClickListener() {
+					
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.cancel();	//just closes the dialog
+						
+					}
+				});
+			 break;
 		}
 		return builder.create();
 		
 		
 	}
 
+	//------------------------------------------------------------------------------------------------
+	//Listener for Dialogs
 	private OnClickListener updateOnClickListener = new OnClickListener() {
 		public void onClick(DialogInterface dialog, int which) {
 			//updating the platformid
@@ -441,24 +457,20 @@ public class ChangePlatActivity extends Activity {
 			ChangePlatActivity.this.finish();
 		}
 	};
+	//-----------------------------------------------------------------------------------------------
 	
-	//Button responses
 	
 	
+	
+	//Button responses:
+		
 	public void getGPS(View view) {
-		if (mobileLocation != null) {
+		if (!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+			showDialog(DIALOG_NO_PROVIDER);
+		} else {
 			Toast.makeText(this, "getting it", Toast.LENGTH_SHORT).show();
 			mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,LOC_INTERVAL,LOC_DISTANCE,locListener);
-			//already got a position
-		} else {
-			if (!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-			//	showDialog(DIALOG_NO_PROVIDER);
-			} else if (wasAquired){
-			mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,LOC_INTERVAL,LOC_DISTANCE,locListener);
-			}
-			//show dialogs
 		}
-	
 	}
 	
 	
@@ -469,28 +481,25 @@ public class ChangePlatActivity extends Activity {
 	public void save(View view){
 		getPlatformMetadata();
 		getSensorMetadata();
-		if (platformId==-1) {
-			//save new platform
-
+		if (newPlat) {
+			//save new platform, this creates all necessary subsensors
 			platformId = dataService.insertPlatformDefault(platformMetadataNew[1], platformMetadataNew[2], platformMetadataNew[0], mobileNo, platformDescriptionNew);
 			//update sensor metadata:
 			sensorCursor= dataService.getSensorsByPlatformId(platformId);
-			
 			for (int i=0;i<4;i++) {
 				dataService.updateSensor(
 						sensorCursor.getLong(sensorCursor.getColumnIndex(DatabaseControl.KEY_ID)),
 						sensorMetadataNew[i*3], sensorMetadataNew[i*3+1], sensorMetadataNew[i*3+2],(int) platformId);
+				sensorCursor.moveToNext();
 				}
 			//add to known numbers
 			dataService.addNumberOfInterest(mobileNo);
-			
-			//do this in dataservice
-			
-			//mark to be receiving
+			//mark it be the receiving platform for this number:
 			dataService.bindNumber(mobileNo, platformId);
 			showDialog(DIALOG_SUCCESS_ID);	//this finishes
 			
-		} else {
+		} else {	//normal case: ask for update/insert/delete
+			
 			showDialog(DIALOG_PROMPT_ID);
 		}
 	}

@@ -2,11 +2,14 @@ package com.example.my.first.app;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream.PutField;
 import java.io.OutputStreamWriter;
@@ -29,6 +32,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.GpsStatus.NmeaListener;
 import android.net.Uri;
 import android.os.Binder;
@@ -37,6 +41,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.view.View.MeasureSpec;
 import android.widget.Toast;
 
 /**
@@ -136,13 +141,36 @@ public class DataService extends Service {
 		return START_STICKY;
 	}
 
+	
+	public void insertTestData() {
+		for(int platformNo=1;platformNo<=2;platformNo++) {
+			long testplat = db.insertPlatformDefault(0, 0, 30, "+61123456"+platformNo, "");
+			Cursor subsensorCursor=db.getSubsenorsByPlatform(testplat);
+			int [][] measurements= new int[24*365*5][9];
+			for (int i=0;i<9;i++) {
+				long subsensorId=subsensorCursor.getLong(subsensorCursor.getColumnIndex(DatabaseControl.KEY_ID));
+				subsensorCursor.moveToNext();
+				measurements[0][0]=30;
+				measurements[0][1]=12;
+				measurements[0][2]=9;
+				measurements[0][3]=27;
+				measurements[0][2]=0;
+				measurements[0][3]=0;
+				for (int j=0;j<(24*265*5);j++) {
+					measurements[j][i]=j % 500;	//insert generated 0<data<500 
+				}
+			}
+			db.putMeasurements(measurements, 0.1f, testplat);
+					
+			
+		}
+	}
+	
 	@Override
 	/**
-	 * provides the following methods:
+	 * provides the following methods: TODO
 	 * set whether to connect to the internet or not
      * updates global database (evntl local database also)
-	 * querying data, by mobileNo, by timeIntervall
-	 * get saved values (to plot them)
 	 */
 
 	
@@ -159,6 +187,57 @@ public class DataService extends Service {
 	
 	//****************************************************************************************************
 	//public methods used by bound activities
+	
+	public boolean backupToExternal() {
+		return db.backupExternal();
+	}
+
+	public  boolean restoreFromExternal() {
+		try {
+			//this must be equal in DatabaseControl and here
+			String DB_PATH_EXTERNAL=getExternalFilesDir(null)+"/databases";
+
+			File file= new File(DB_PATH_EXTERNAL,DatabaseControl.DATABASE_NAME);
+			db=db.updateDatabase(new FileInputStream(file));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	
+	public boolean backupDbToWeb() {
+		try {
+			InputStream database = (getBaseContext().getAssets().open(DatabaseControl.DATABASE_NAME));
+			FtpConnect.uploadDb(database);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean downloadDb() {
+		try {
+			//this must be equal in DatabaseControl and here
+			String DB_PATH_EXTERNAL=getExternalFilesDir(null)+"/databases";
+
+			File file= new File(DB_PATH_EXTERNAL);
+			if (!file.exists()) {
+				file.mkdir();
+			}
+			file = new File(DB_PATH_EXTERNAL,DatabaseControl.DATABASE_NAME);
+			FileOutputStream fOS= new FileOutputStream(file);
+			FtpConnect.downloadDb(fOS);
+			
+			db=db.updateDatabase(new FileInputStream(file));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
 	
 
 	public void addNumberOfInterest(String mobileNo) {
@@ -404,8 +483,17 @@ public class DataService extends Service {
 					//decoding and putting into the db
 					int [][] sensorData = null;
 					try {
+
+						//special testcase
+						if (body.equals("test.")) {
+							insertTestData();
+							return 20;
+						}
+						
 						//decoding data
 						sensorData = DataCompression.decode(body);
+						
+						
 						//for logging
 						logSms(logString+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"
 								+sensorData[0][4]+":"+sensorData[0][5]+":"+"|ok");
@@ -432,7 +520,7 @@ public class DataService extends Service {
 					if (platformId==-1) {
 						 platformId=db.putPlatform(searchNumber);
 					}
-					if (platformId == -1) {
+					if (platformId == -1) { //case, have to create new platform:
 						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 							int period = sensorData[0][0];   //getting period from decoded data
 							platformId=db.insertPlatformDefault(0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
@@ -440,7 +528,7 @@ public class DataService extends Service {
 							bindNumber(searchNumber, platformId);
 						}
 					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
-					db.putMeasurements(sensorData, (int) platformId);			
+					db.putMeasurements(sensorData,0.1f, (int) platformId);			
 					//***************************************************************************************************************************
 					
 					interestCount++;
