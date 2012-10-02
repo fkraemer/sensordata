@@ -126,7 +126,7 @@ public class ChoosePlatActivity extends Activity {
 					break;
 				case (MainActivity.SELECT_AND_PLOT):
 					//sets up a standard cursoradapter
-					simpleCA= new SimpleCursorAdapter(cx, R.layout.platform_entry2, curs,
+					simpleCA= new SimpleCursorAdapter(cx, R.layout.list_item_platform, curs,
 							new String[] {DatabaseControl.KEY_ID, DatabaseControl.KEY_MOBILENO,DatabaseControl.KEY_DESCR},
 							new int[] {R.id.id,R.id.mobile_number,R.id.description});
 					list.setAdapter(simpleCA);

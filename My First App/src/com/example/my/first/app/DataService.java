@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream.PutField;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -212,19 +213,12 @@ public class DataService extends Service {
 	}
 	
 	
-	public boolean backupDbToWeb() {
-		try {
-			InputStream database = (getBaseContext().getAssets().open(DatabaseControl.DATABASE_NAME));
+	public void backupDbToWeb() throws MalformedURLException, IOException {
+			InputStream database= new FileInputStream(getDatabasePath(DatabaseControl.DATABASE_NAME));
 			FtpConnect.uploadDb(database);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
 	}
 	
-	public boolean downloadDb() {
-		try {
+	public void downloadDb() throws MalformedURLException, IOException {
 			//this must be equal in DatabaseControl and here
 			String DB_PATH_EXTERNAL=getExternalFilesDir(null)+"/databases";
 
@@ -237,11 +231,6 @@ public class DataService extends Service {
 			FtpConnect.downloadDb(fOS);
 			
 			db=db.updateDatabase(new FileInputStream(file));
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
 	}
 	
 
@@ -351,7 +340,7 @@ public class DataService extends Service {
 				saveStateToFile(); // called at the very first startup if file doesnt exist already
 				return;//then exiting here
 			}
-			in = new BufferedReader(new InputStreamReader(openFileInput("lastState")));
+			in = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
 			//reading line by line
 			int count=0;
 			String string=null;
