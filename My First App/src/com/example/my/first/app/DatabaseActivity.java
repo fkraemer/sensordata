@@ -9,8 +9,6 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.net.ftp.FTPClient;
 
-import com.example.my.first.app.ChooseTimeActivity.getTimeTask;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
