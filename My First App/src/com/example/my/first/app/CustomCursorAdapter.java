@@ -23,7 +23,7 @@ public class CustomCursorAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return mLayoutInflater.inflate(R.layout.platform_entry, parent, false);
+        return mLayoutInflater.inflate(R.layout.list_item_platform_with_receiving, parent, false);
     }
 
     public void bindView(View v, Context context, Cursor c) {

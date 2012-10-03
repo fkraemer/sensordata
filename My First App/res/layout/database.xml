@@ -9,25 +9,29 @@
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="backUpWeb"
+        android:onClick="backupWeb"
+        android:id="@+id/backupWeb"
         android:text="Upload to Ftp" />
     
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="download"
+        android:id="@+id/download"
         android:text="Download from Ftp" />
     
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="backupExternal"
+        android:id="@+id/backupExternal"
         android:text="Backup on SD" />
     
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="restoreExternal"
+        android:id="@+id/restoreExternal"
         android:text="Restore from SD" />
     
     <TextView 

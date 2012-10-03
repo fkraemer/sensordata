@@ -53,7 +53,7 @@ public class ChoosePeriodActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.choosetime);
+		setContentView(R.layout.chooseperiod);
 		cx=getApplicationContext();
 
 		//getting the platform to work on
@@ -67,7 +67,7 @@ public class ChoosePeriodActivity extends Activity {
 				"last week in database", 
 				"everything"};
 		list.setAdapter(new ArrayAdapter<String>(cx,
-				android.R.layout.simple_list_item_checked, listOptions));	
+				R.layout.list_item_chooseperiod,R.id.list_content, listOptions));//set item layout to have black text colour by default
 			
         // Bind to LocalService, happens in UI-thread, watch time delays !!
         Intent intent =  new Intent(this, DataService.class);
