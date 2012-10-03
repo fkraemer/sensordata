@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream.PutField;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -186,6 +187,8 @@ public class DataService extends Service {
     }
 	
 	//****************************************************************************************************
+
+	//****************************************************************************************************
 	//public methods used by bound activities
 	
 	public boolean backupToExternal() {
@@ -199,6 +202,9 @@ public class DataService extends Service {
 
 			File file= new File(DB_PATH_EXTERNAL,DatabaseControl.DATABASE_NAME);
 			db=db.updateDatabase(new FileInputStream(file));
+			
+			//TODO process the new database ==> bind numbers, but which ones on multiple numbers ??
+			//								==> numbers of interest add
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -207,19 +213,12 @@ public class DataService extends Service {
 	}
 	
 	
-	public boolean backupDbToWeb() {
-		try {
-			InputStream database = (getBaseContext().getAssets().open(DatabaseControl.DATABASE_NAME));
+	public void backupDbToWeb() throws MalformedURLException, IOException {
+			InputStream database= new FileInputStream(getDatabasePath(DatabaseControl.DATABASE_NAME));
 			FtpConnect.uploadDb(database);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
 	}
 	
-	public boolean downloadDb() {
-		try {
+	public void downloadDb() throws MalformedURLException, IOException {
 			//this must be equal in DatabaseControl and here
 			String DB_PATH_EXTERNAL=getExternalFilesDir(null)+"/databases";
 
@@ -232,11 +231,6 @@ public class DataService extends Service {
 			FtpConnect.downloadDb(fOS);
 			
 			db=db.updateDatabase(new FileInputStream(file));
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
 	}
 	
 
@@ -253,6 +247,14 @@ public class DataService extends Service {
 		} else {	//already in there, replace!
 			lastPlatformId.set(listIndex, platformId);
 		}
+	}
+	
+	public void deleteboundNumber(String mobileNo, long platformId) {
+		int listIndex=lastMobileNo.indexOf(mobileNo);
+		if (listIndex!=-1 && lastPlatformId.get(listIndex)==platformId) {	// in the list and receiving
+			lastMobileNo.remove(mobileNo);
+			lastPlatformId.remove(platformId);
+		} 
 	}
 	
 	public boolean platformIdIsBound(long platformId) {
@@ -341,7 +343,12 @@ public class DataService extends Service {
 		BufferedReader in;
 		String [] stringStore=new String[5];
 		try {
-			in = new BufferedReader(new InputStreamReader(openFileInput("lastState")));
+			File file= new File(getExternalFilesDir(null)+"/lastState.txt");
+			if (!file.exists()) {
+				saveStateToFile(); // called at the very first startup if file doesnt exist already
+				return;//then exiting here
+			}
+			in = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
 			//reading line by line
 			int count=0;
 			String string=null;
@@ -351,9 +358,8 @@ public class DataService extends Service {
 			}
 			in.close();
 		} catch (FileNotFoundException e1) {
-			saveStateToFile(); // called at the very first startup if file doesnt exist already
 			e1.printStackTrace();
-			return;	//then exiting here, cause
+			return;	
 		} catch (IOException e) {
 			System.out.println("File/Write problems");
 		}
@@ -432,8 +438,8 @@ public class DataService extends Service {
 		//writing data to file, limitted to 3string right now!
 		BufferedWriter out;
 		try {
-			//MODE_PRIVATE creates file, if it does not exist now
-			out = new BufferedWriter(new OutputStreamWriter(openFileOutput(	"lastState", MODE_PRIVATE))); // mode_private overwrites old file
+			//creates file, if it does not exist now
+			out = new BufferedWriter(new FileWriter(getExternalFilesDir(null)+"/lastState.txt",false)); // "false" overwrites old file
 			for (int i = 0; i < 3; i++) {
 				out.write(stringStore[i]);
 			}
@@ -524,9 +530,10 @@ public class DataService extends Service {
 						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
 							int period = sensorData[0][0];   //getting period from decoded data
 							platformId=db.insertPlatformDefault(0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
-							//case, we dont know about this sensor yet, mark in the bindnumbers:
-							bindNumber(searchNumber, platformId);
+							
 						}
+					//we might not know about this sensor yet, mark in the bindnumbers:
+					bindNumber(searchNumber, platformId);
 					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
 					db.putMeasurements(sensorData,0.1f, (int) platformId);			
 					//***************************************************************************************************************************

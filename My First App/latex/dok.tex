@@ -15,6 +15,7 @@
 \usepackage{gensymb}
 \usepackage{color}
 \usepackage{colortbl}
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=blue]{hyperref}
 \geometry{a4paper,left=2cm,top=1cm, top=1.5cm, bottom=3.5cm}
 \makeatletter
 \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
@@ -102,7 +103,7 @@ The application features several activities for the different types of user-inte
 Then there is an underlying service, that handles the background data-processing. It reads, decompresses and stores the sensordata from the phone's SMS-inbox. It also handles which numbers are interpreted to be platforms and to which platform in the database they should correspond Besides this it also provides the connection between the activities and the database and saves the users preferences to a file.
 
 \subsection{Data model}
-An existing data model  FOOTNOTE was reduced to fit the specifications of a smartphone application. This reduces the amount of choices the user has to make in order to operate and keeps the complexity to a certain level. It also makes the database as lightweight as possible. The measurement entity-type features no dedicated id, but instead the timestamp and subsensor id are used as a unique primary key.
+An existing data model\cite{websense2011} was reduced to fit the specifications of a smartphone application. This reduces the amount of choices the user has to make in order to operate and keeps the complexity to a certain level. It also makes the database as lightweight as possible. The measurement entity-type features no dedicated id, but instead the timestamp and subsensor id are used as a unique primary key.
 
 \begin{center}
 \begin{tabular}{|c|c|}
@@ -145,13 +146,11 @@ Here two plots are arranged to visualize the preselected data. Special about thi
 This of course is also basically depending on the periods with which the data is collected and the current preferences are not dynamic, but rely on a period of about 30minutes. TODO
 
 \subsubsection{Database}
-In this activity a connection with a ftp-server can be etablished to send or retrieve the database-file. The apache-commons-net library is used for this. The network related actions are executed in AsyncTasks, so the main thread is not stressed by it or blocked in the worst case. To show the user of what is happening in the background there are different dialogs deployed to show the working progress and explain what went wrong in case of an exception. This actually is a quite complex situation, with files being read and written from internal and external storage and also using an internet connection at the same time. The possible exceptions are passed by throw-clauses to suggest to the user in the end what went wrong.
+In this activity a connection with a ftp-server can be etablished to send or retrieve the database-file. The Apache Commons Net 3.1 library\footnote{\url{http://commons.apache.org/net/api-3.1/index.html}} is used for this. The network related actions are executed in AsyncTasks, so the main thread is not stressed by it or blocked in the worst case. To show the user of what is happening in the background there are different dialogs deployed to show the working progress and explain what went wrong in case of an exception. This actually is a quite complex situation, with files being read and written from internal and external storage and also using an internet connection at the same time. The possible exceptions are passed by throw-clauses to suggest to the user in the end what went wrong.
 Do ensure the integrity of the local database at least to a certain level, the file is first saved on the external storage and once that is completed successfully this new database is copied and then 
 replaces the old local one. Always copying the whole database file provides definitely just a temporary solution, due to the unflexibility and dangers to the file-integrity concerning bigger database sizes.
 If using a webservice at this point there would also be a need to eveluate the incoming data in order if and where to insert it into the database. Whether there were new messages received is indicated by a boolean set in DataService.
 
-
-INSERT FOOTNOTE
 
 \subsection{Data service}
 A service in Android can be used applications to handle (long-running) operations in background. Activities can bind to it and then call its public methods. Different to activities it does not provide a user-interface, thus only toasts and notifications can be used to inform about its state. The data service actually provides a notification once it has decompressed a new message.
@@ -173,18 +172,17 @@ Basically there are a few lines written, that contain: The flag, whether there i
 
 
 \subsection{Database}
-Android supports SQLite databases by default and the direct interactions with it are done in the DatabaseControl-class, which should itself just be prompted by the DataService-class ( see \textit{\ref{sec:database_safety} \titleref{sec:database_safety}} ). The nested subclass DBHelper handles the creating, openening and copying of the database. All Strings are set as public constants here to allow easy access and changes. The ``\_{}id '' is specifically named like this, since for example the CursorAdapter used in the ChoosePlatform-Activity for a ListView requires it to work properly. An essential detail is the ON UPDATE CASCADE property, that keeps the relations of tables intact although the foreign keys are altered. This is not used in paticular right now, but should be considered important when communicating with another database, since this might involve updating foreign keys. The ON DELETE CASCADE is used to delete all dependent table rows in the database. Thus the user can delete a complete platform including all its measurements in the Change-Platform-activity. This makes sense, since measurements without a linked platform will not be selectable to be plotted anymore and therefore are dead data. Note that executing the sql-command ``PRAGMA foreign\_{}keys=ON;'' after creating the tables is substantial for the ON DELETE CASCADE to work.
+Android supports SQLite databases by default and the direct interactions with it are done in the DatabaseControl-class, which should itself just be prompted by the DataService-class ( see \textit{\ref{sec:database_safety}} ). The nested subclass DBHelper handles the creating, openening and copying of the database. All Strings are set as public constants here to allow easy access and changes. The ``\_{}id '' is specifically named like this, since for example the CursorAdapter used in the ChoosePlatform-Activity for a ListView requires it to work properly. An essential detail is the ON UPDATE CASCADE property, that keeps the relations of tables intact although the foreign keys are altered. This is not used in paticular right now, but should be considered important when communicating with another database, since this might involve updating foreign keys. The ON DELETE CASCADE is used to delete all dependent table rows in the database. Thus the user can delete a complete platform including all its measurements in the Change-Platform-activity. This makes sense, since measurements without a linked platform will not be selectable to be plotted anymore and therefore are dead data. Note that executing the sql-command ``PRAGMA foreign\_{}keys=ON;'' after creating the tables is substantial for the ON DELETE CASCADE to work.
 
 The database is quite unflexible right now, meaning it is tailored for the current build-up with nine incoming data streams. Also the phenomenas are created hardcoded right now upon startup.
 
 
 \subsection{Plotting}
-To visualize the data the library androidplot is used. It offers a wide range of preferences, but a rather sparse API. The biggest challenge here is to find the limits for displaying as much data as possible while still making it wel-readable and handable for the user. Thus it might just be a well-sized extract from the chosen data.
+To visualize the data the library androidplot\footnote{\url{http://androidplot.com}} is used. It offers a wide range of preferences, but a rather sparse API. The biggest challenge here is to find the limits for displaying as much data as possible while still making it wel-readable and handable for the user. Thus it might just be a well-sized extract from the chosen data.
 Since the plots are implementing a touch functionality, the shown ranges are limitted with maximum and minimum values, so one can not get lost in the depth of the graph. 
 To make the touch experience a bit smoother, a thread was implemented, that slows the scrolling and zooming exponentially down after the touch gesture, instead of stopping immediately.
 To not allow the view to be scrolled on smaller screen sizes a custom scrollview was implemented, that allows to block scrolling the view while gestures are made on the plots.
 
-INSERT FOOTNOTE
 
 \subsection{Thread safety}
 The Android platform comes with a mannerism, that necessitates special handling at times. The most important constraint is that changes to the views can only be done from the UI-thread. When using multithreading thus attention must be paid to this. The Android API provides the AsyncTask, its doInBackground-method offers background processing, while its onPostExecute-method is executed in the UI-thread and can therefore be used to meet this challenge.
@@ -201,14 +199,16 @@ One is likely to encounter odd errors, when trying to debug or just run parts of
 
 
 \section{Testing}
-\subsection{High-level and on-device}
-Since the application can be started on devices during development as described in \textit{\ref{sec:Debugging} \titleref{sec:Debugging}}, it is very convenient to test the correct behaviour of the application just on the device. This includes using different devices to ensure for example correct presentation on different screen sizes or hardware compability.
+\subsection{          and on-device}
+Since the application can be started on devices during development as described in \textit{\ref{sec:Debugging}}, it is very convenient to test the correct behaviour of the application just on the device. This includes using different devices to ensure for example correct presentation on different screen sizes or hardware compability.
 
 \subsection{database benchmarks}
 TODO: 10years,10platforms, period:30min... too mouch
 
 \section{Risks}
-Upon reinstallation, which must for example be done, when changing the development PC \underline{all} data of the application is lost. This involves database backups, the preference file and log file on the SD-card.
+Upon reinstallation, which must for example be done, when changing the development PC, \underline{all} data of the application is lost. This involves database backups, the preference file and log file on the SD-card.
+
+Since the ftp upload is more aprovisional thing, there is no user-friendly information output right now, that would for example interpret exceptions as the wireless connections turned off or similar.
 
 
 \section{Future Tasks}
@@ -227,11 +227,18 @@ The plots could compare several platforms for the same or different time. It wou
 
 \end{itemize}
 
-\section{links}
-sqlite sheets
-android api
-vogella
-mybringback.com
+\section{Links}
+The following resources proved to be very helpful during development:
 
+\begin{itemize}\itemsep0pt
+\item The Android API \footnote{\url{http://developer.android.com/reference/packages.html}}
+\item The Android Developers pages, especially the API guides \footnote{\url{http://developer.android.com/guide/components/index.html}} and the Android Training to begin with \footnote{\url{http://developer.android.com/training/index.html}}
+\item Often linked to and highly informative are the tutorials of Lars Vogel \footnote{\url{http://www.vogella.com/android.html}}
+\item A good source for video tutorials is mybringback.com\footnote{\url{http://www.mybringback.com/series/android-basics/}}
+\item The SQLite SELECT\footnote{\url{http://www.sqlite.org/lang_select.html}} and CREATE TABLE \footnote{\url{http://www.sqlite.org/lang_createtable.html}} language descriptions
+\item The rare androidplot tutorials and documentation\footnote{\url{http://androidplot.com/wiki/Docs}}
 
+\end{itemize}
+\bibliographystyle{plain}
+\bibliography{dok}
 \end{document}

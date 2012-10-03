@@ -10,6 +10,7 @@ import com.example.sensor.data.Main;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -31,7 +32,7 @@ import android.widget.SimpleAdapter;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
 
-public class ChooseTimeActivity extends Activity {
+public class ChoosePeriodActivity extends Activity {
 	
 	private DataService dataService;
 	private Cursor curs=null;
