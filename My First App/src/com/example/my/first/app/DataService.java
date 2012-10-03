@@ -13,6 +13,8 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+
 import com.example.sensor.data.DataCompression;
 import com.example.sensor.data.DecodeException;
 import com.example.sensor.data.DecodeFatalException;
@@ -29,6 +31,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
+import android.telephony.TelephonyManager;
 
 /**
  * The DataService acts as a backbone of the whole app.
@@ -69,7 +72,16 @@ public class DataService extends Service {
 
 	public void backupDbToWeb() throws MalformedURLException, IOException {
 			InputStream database= new FileInputStream(getDatabasePath(DatabaseControl.DATABASE_NAME));
-			FtpConnect.uploadDb(database);
+			//getting the unique device id
+			final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+
+		    final String tmDevice, tmSerial, androidId;
+		    androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+	    	Calendar c= Calendar.getInstance(); //used to give the files unique filenames
+	    	String uniqueIdentifier="_"+androidId+"_"+Long.toString(c.getTimeInMillis());
+			
+			FtpConnect.uploadDb(database,uniqueIdentifier);
 	}
 
 	
