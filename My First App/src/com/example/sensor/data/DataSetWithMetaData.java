@@ -7,10 +7,10 @@ public class DataSetWithMetaData extends DataSet {
 	//---------------------------------------------------------------------------
 	// optional metadata
 	private String description;
-	private int platformId;
-	private int longitude;
-	private int latitude;
 	private int elevation;
+	private int latitude;
+	private int longitude;
+	private int platformId;
 	
 	private int[] sensorId = new int[5];
 	private int[][] sensorOffsets=new int[5][3];	//in format [sensorNo][{offsetX,offsetY,offsetZ}]
@@ -46,28 +46,40 @@ public class DataSetWithMetaData extends DataSet {
 		return description;
 	}
 
-	public void setDescription(String description) {
-		this.description = description;
+	public int getElevation() {
+		return elevation;
 	}
 
-	public int getPlatformId() {
-		return platformId;
-	}
-
-	public void setPlatformId(int platformId) {
-		this.platformId = platformId;
+	public int getLatitude() {
+		return latitude;
 	}
 
 	public int getLongitude() {
 		return longitude;
 	}
 
-	public void setLongitude(int longitude) {
-		this.longitude = longitude;
+	public int getPlatformId() {
+		return platformId;
 	}
 
-	public int getLatitude() {
-		return latitude;
+	public int[] getSensorId() {
+		return sensorId;
+	}
+
+	public int[] getSensorOffsets(int i) {
+		return sensorOffsets[i];
+	}
+
+	public int[] getSubsensorId() {
+		return subsensorId;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public void setElevation(int elevation) {
+		this.elevation = elevation;
 	}
 
 	public void setLatitude(int latitude) {
@@ -75,32 +87,20 @@ public class DataSetWithMetaData extends DataSet {
 	
 	}
 
-	public int getElevation() {
-		return elevation;
+	public void setLongitude(int longitude) {
+		this.longitude = longitude;
 	}
 
-	public void setElevation(int elevation) {
-		this.elevation = elevation;
-	}
-
-	public int[] getSensorId() {
-		return sensorId;
+	public void setPlatformId(int platformId) {
+		this.platformId = platformId;
 	}
 
 	public void setSensorId(int[] sensorId) {
 		this.sensorId = sensorId;
 	}
 
-	public int[] getSensorOffsets(int i) {
-		return sensorOffsets[i];
-	}
-
 	public void setSensorOffsets(int sensorNo,int[] sensorOffsets) {
 		this.sensorOffsets[sensorNo] = sensorOffsets;
-	}
-
-	public int[] getSubsensorId() {
-		return subsensorId;
 	}
 
 	public void setSubsensorId(int[] subsensorId) {

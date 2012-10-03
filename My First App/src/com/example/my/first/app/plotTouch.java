@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.androidplot.util.ValPixConverter;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.XYPlot;
 
@@ -17,35 +16,35 @@ import android.view.View.OnTouchListener;
 
 public class plotTouch implements OnTouchListener {
 
-	private float ABS_Y_MIN;
-	private float ABS_Y_MAX;
-	private float MAX_Y_DISTANCE;
-	private float ABS_X_MIN;
-	private float ABS_X_MAX;
-	private float MAX_X_DISTANCE;
-	private float MIN_X_DISTANCE; // minimum of shown time range
-	private float MIN_Y_DISTANCE;
-
 	private static final int NONE = 0;
 	private static final int ONE_FINGER_DRAG = 1;
-	private static final int TWO_FINGERS_DRAG = 2; // zooms/scrolls a bit longer
 	protected static final float SCROLL_PARAM = 0.6f; // default 0.6,(1>x>0.1)
-														// higher, the longer
+	private static final int TWO_FINGERS_DRAG = 2; // zooms/scrolls a bit longer
+	// higher, the longer
 	protected static final float ZOOM_PARAM = 0.3f; // default 0.3(0.1<x<1)
-													// smaller, the longer
-	private int mode = NONE;
+	private float ABS_X_MAX;
+	private float ABS_X_MIN;
+	private float ABS_Y_MAX;
 
-	private PointF firstFinger;
-	private PointF midPoint;
-	private PointF minXY = new PointF();
-	private PointF maxXY = new PointF();
-	private float lastScrollingX;
-	private float lastScrollingY;
+	private float ABS_Y_MIN;
 	private float distBetweenFingers;
-	private float lastZooming;
-	private LockableScrollView scroll;
+	private PointF firstFinger;
+	private float lastScrollingX;
+														private float lastScrollingY;
+													private float lastZooming;
+
+	private float MAX_X_DISTANCE;
+	private float MAX_Y_DISTANCE;
+	private PointF maxXY = new PointF();
+	private PointF midPoint;
+	private float MIN_X_DISTANCE; // minimum of shown time range
+	private float MIN_Y_DISTANCE;
+	private PointF minXY = new PointF();
+	// smaller, the longer
+	private int mode = NONE;
 	private XYPlot plot;
 	private String plotTitle;
+	private LockableScrollView scroll;
 
 	public plotTouch(final XYPlot plot, float ABS_X_MIN, float ABS_X_MAX,
 			float ABS_Y_MIN, float ABS_Y_MAX, float MAX_X_DISTANCE,
@@ -75,6 +74,7 @@ public class plotTouch implements OnTouchListener {
 
 		Thread t = new Thread() {
 
+			@Override
 			public void run() {
 				while (!isInterrupted()) {
 					try {
@@ -92,6 +92,52 @@ public class plotTouch implements OnTouchListener {
 		};
 		t.start();
 
+	}
+
+	private float[] forceBorders(float oldMin, float oldMax, float newMin,
+			float newMax, Direction dir) {
+		float lowerBorder = newMin;
+		float upperBorder = newMax;
+		float minDistance;
+		float maxDistance;
+		float minValue;
+		float maxValue;
+		if (dir == Direction.X) {
+			minDistance = MIN_X_DISTANCE;
+			maxDistance = MAX_X_DISTANCE;
+			minValue = ABS_X_MIN;
+			maxValue = ABS_X_MAX;
+		} else {
+			minDistance = MIN_Y_DISTANCE;
+			maxDistance = MAX_Y_DISTANCE;
+			minValue = ABS_Y_MIN;
+			maxValue = ABS_Y_MAX;
+		}
+		StringBuilder sb = new StringBuilder();
+		// case: lower border under minimum, covers cases zoom out, scroll out
+		if (newMin < minValue) {
+			lowerBorder = minValue;
+			upperBorder = minValue + (newMax - newMin); // realize
+														// distance-change,
+														// thereby applicable
+														// for scroll and zoom
+			sb.append("  force: unterschritten");
+		}
+
+		// case: upper border over maximum,
+		if (newMax > maxValue) {
+			upperBorder = maxValue;
+			lowerBorder = maxValue - (newMax - newMin);
+			sb.append("  force: ueberschritten");
+		}
+		// case: range to small/ and case: range to big
+		if (Math.abs(newMax - newMin) < minDistance
+				|| Math.abs(newMax - newMin) > maxDistance) {
+			lowerBorder = oldMin;
+			upperBorder = oldMax;
+			sb.append("  range problem");
+		}
+		return new float[] { lowerBorder, upperBorder };
 	}
 
 	public boolean onTouch(View arg0, MotionEvent event) {
@@ -115,6 +161,7 @@ public class plotTouch implements OnTouchListener {
 			Timer t = new Timer();
 			t.schedule(new TimerTask() {
 
+				@Override
 				public void run() {
 					// lastzooming: values between 0 and 2
 					while (Math.abs(lastScrollingX) > 1f
@@ -175,32 +222,6 @@ public class plotTouch implements OnTouchListener {
 		return true;
 	}
 
-	private void zoom(float scale) {
-		// set x-axis borders, limit to maximum borders
-		float domainSpan = maxXY.x - minXY.x;
-		float domainMidPoint = maxXY.x - domainSpan / 2.0f; // setMid() ,must
-															// have been called
-															// recently:
-		// float factorX =minXY.x + midPoint.x / plot.getWidth() * domainSpan;
-		// txt1.setText(String.valueOf(factorX) +"    "+
-		// String.valueOf(plot.getWidth()));
-
-		float domainOffset = domainSpan * scale / 2.0f;
-		float[] k = forceBorders(minXY.x, maxXY.x, domainMidPoint
-				- domainOffset, domainMidPoint + domainOffset, Direction.X);
-		minXY.x = k[0];
-		maxXY.x = k[1];
-		// set y-axis borders, keep in maximumborders
-		float rangeSpan = maxXY.y - minXY.y;
-		float rangeOffset = rangeSpan * scale / 2.0f;
-		float rangeMidPoint = maxXY.y - rangeSpan / 2.0f;
-		k = forceBorders(minXY.y, maxXY.y, rangeMidPoint - rangeOffset,
-				rangeMidPoint + rangeOffset, Direction.Y);
-		minXY.y = k[0];
-		maxXY.y = k[1];
-		setBoundaries();
-	}
-
 	// push window
 	private void scroll(float panX, float panY) {
 		float domainSpan = maxXY.x - minXY.x;
@@ -230,18 +251,6 @@ public class plotTouch implements OnTouchListener {
 
 	}
 
-	// distance between fingers
-	private float spacing(MotionEvent event) {
-		if (event.getPointerCount() > 1) // make sure there are 2touches,
-											// otherwise exceptions
-		{
-			float x = event.getX(0) - event.getX(1);
-			float y = event.getY(0) - event.getY(1);
-			return FloatMath.sqrt(x * x + y * y);
-		}
-		return 0;
-	}
-
 	/**
 	 * private void setMid(MotionEvent ev) // planned to zoom centered around
 	 * the touch point { if (ev.getPointerCount() > 1) //case: 2touches {
@@ -257,50 +266,42 @@ public class plotTouch implements OnTouchListener {
 		plot.setRangeBoundaries(minXY.y, maxXY.y, BoundaryMode.FIXED);
 	}
 
-	private float[] forceBorders(float oldMin, float oldMax, float newMin,
-			float newMax, Direction dir) {
-		float lowerBorder = newMin;
-		float upperBorder = newMax;
-		float minDistance;
-		float maxDistance;
-		float minValue;
-		float maxValue;
-		if (dir == Direction.X) {
-			minDistance = MIN_X_DISTANCE;
-			maxDistance = MAX_X_DISTANCE;
-			minValue = ABS_X_MIN;
-			maxValue = ABS_X_MAX;
-		} else {
-			minDistance = MIN_Y_DISTANCE;
-			maxDistance = MAX_Y_DISTANCE;
-			minValue = ABS_Y_MIN;
-			maxValue = ABS_Y_MAX;
+	// distance between fingers
+	private float spacing(MotionEvent event) {
+		if (event.getPointerCount() > 1) // make sure there are 2touches,
+											// otherwise exceptions
+		{
+			float x = event.getX(0) - event.getX(1);
+			float y = event.getY(0) - event.getY(1);
+			return FloatMath.sqrt(x * x + y * y);
 		}
-		StringBuilder sb = new StringBuilder();
-		// case: lower border under minimum, covers cases zoom out, scroll out
-		if (newMin < minValue) {
-			lowerBorder = minValue;
-			upperBorder = minValue + (newMax - newMin); // realize
-														// distance-change,
-														// thereby applicable
-														// for scroll and zoom
-			sb.append("  force: unterschritten");
-		}
+		return 0;
+	}
 
-		// case: upper border over maximum,
-		if (newMax > maxValue) {
-			upperBorder = maxValue;
-			lowerBorder = maxValue - (newMax - newMin);
-			sb.append("  force: ueberschritten");
-		}
-		// case: range to small/ and case: range to big
-		if (Math.abs(newMax - newMin) < minDistance
-				|| Math.abs(newMax - newMin) > maxDistance) {
-			lowerBorder = oldMin;
-			upperBorder = oldMax;
-			sb.append("  range problem");
-		}
-		return new float[] { lowerBorder, upperBorder };
+	private void zoom(float scale) {
+		// set x-axis borders, limit to maximum borders
+		float domainSpan = maxXY.x - minXY.x;
+		float domainMidPoint = maxXY.x - domainSpan / 2.0f; // setMid() ,must
+															// have been called
+															// recently:
+		// float factorX =minXY.x + midPoint.x / plot.getWidth() * domainSpan;
+		// txt1.setText(String.valueOf(factorX) +"    "+
+		// String.valueOf(plot.getWidth()));
+
+		float domainOffset = domainSpan * scale / 2.0f;
+		float[] k = forceBorders(minXY.x, maxXY.x, domainMidPoint
+				- domainOffset, domainMidPoint + domainOffset, Direction.X);
+		minXY.x = k[0];
+		maxXY.x = k[1];
+		// set y-axis borders, keep in maximumborders
+		float rangeSpan = maxXY.y - minXY.y;
+		float rangeOffset = rangeSpan * scale / 2.0f;
+		float rangeMidPoint = maxXY.y - rangeSpan / 2.0f;
+		k = forceBorders(minXY.y, maxXY.y, rangeMidPoint - rangeOffset,
+				rangeMidPoint + rangeOffset, Direction.Y);
+		minXY.y = k[0];
+		maxXY.y = k[1];
+		setBoundaries();
 	}
 
 }

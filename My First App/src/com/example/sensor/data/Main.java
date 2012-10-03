@@ -1,8 +1,5 @@
 package com.example.sensor.data;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class Main {
 
 

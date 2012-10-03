@@ -11,14 +11,14 @@ public class DecodeFatalException extends DecodeException {
 		// TODO Auto-generated constructor stub
 	}
 
-	public DecodeFatalException(Throwable throwable) {
-		super(throwable);
-		// TODO Auto-generated constructor stub
-	}
-
 	public DecodeFatalException(String detailMessage, Throwable throwable) {
 		super(detailMessage, throwable);
 		
+		// TODO Auto-generated constructor stub
+	}
+
+	public DecodeFatalException(Throwable throwable) {
+		super(throwable);
 		// TODO Auto-generated constructor stub
 	}
 }

@@ -4,19 +4,13 @@ import android.annotation.TargetApi;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import		java.io.Serializable;
-import      java.text.SimpleDateFormat;
 import 		java.util.ArrayList;
-import 		java.util.Arrays;
 import		java.util.Calendar;
-import 		java.util.Date;
 
 
 
 public class DataStorage implements Parcelable {
 
-	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
-	
 	public static final Parcelable.Creator CREATOR =
 			new Parcelable.Creator() {
 			    public DataStorage createFromParcel(Parcel in) {
@@ -27,6 +21,8 @@ public class DataStorage implements Parcelable {
 			        return new DataStorage[size];
 			    }
 			};
+	
+	private ArrayList<DataSet> storage =new ArrayList<DataSet>();
 
 
 	public DataStorage()
@@ -89,6 +85,10 @@ public class DataStorage implements Parcelable {
 	}
 	
 	
+	public int describeContents() {
+		return 0;
+	}
+	
 	public ArrayList<DataSet> getDataById(String mobileNo)
 	{
 		ArrayList<DataSet> result = new ArrayList<DataSet>();
@@ -104,21 +104,17 @@ public class DataStorage implements Parcelable {
 	{
 		return storage.get(localId);
 	}
-	
+
+	private void readFromParcel(Parcel in) {
+		storage=in.createTypedArrayList(DataSet.CREATOR);
+	}
+
 	public int size()
 	{
 		return storage.size();
 	}
 
-	public int describeContents() {
-		return 0;
-	}
-
 	public void writeToParcel(Parcel dest, int flags) {
 		dest.writeTypedList(storage);
-	}
-
-	private void readFromParcel(Parcel in) {
-		storage=in.createTypedArrayList(DataSet.CREATOR);
 	}
 }

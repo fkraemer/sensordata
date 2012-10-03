@@ -6,22 +6,34 @@ import java.util.Arrays;
 
 public abstract class DataCompression {
 
-	public final static int ANCHORLENGTH=15;
 	public final static int ANCHORCHARLENGTH=20;
-	public final static int SENSORCOUNT=9;
-	public final static int MEASURECOUNT=24;
-	private final static int HUFCODEBOOKLENGTH=27;
-	private final static int CBITS = 6;
-	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	private final static int[] anchorCodeBook={12,7,4,5,5,6,9,9,9,9,9,9,9,9,7};
+	public final static int ANCHORLENGTH=15;
+	private final static int[] anchorOffsets={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	private final static int CBITS = 6;
+	private final static int HUFCODEBOOKLENGTH=27;
 	private final static int[][] huff28 = { { 0,  -5,   -1,    5,   1,   10,  15,  1001,  -10,   20,  25,   -2,    2,    
 			3,  -4,   -3,   11,  30,  -42,  -16,   -6,    8,   44,  60,   69,   70, 1002 },
 			{ 0,   2,   12,   13,  28,   58,   59,  120,  121,  122,  123,  124,  125,  
 			252, 506, 507, 508, 509, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 4094, 4095  }};
+	public final static int MEASURECOUNT=24;
+	public final static int SENSORCOUNT=9;
 	
-	public static void main(String[] args) {
-		//6HKQ8B00003NQJIQJC 00000000000D3XrrrrWRkw11Xvy:VF00000400102W
-		//int[][] neu =decode("6HKQ8B00003NQJIQJC00000000000D3XrrrrWRkw11Xvy:VF00000400102W");
+	private static int[] binToAnchorVec(String anchorBinString,
+			int[] anchorcodebook, int[] anchoroffsets) {
+		int [] result= new int[ANCHORLENGTH];
+		int pos=0;
+		for (int i=0; i<ANCHORLENGTH;i++) {
+				int newpos=pos+anchorcodebook[i];
+				try {
+					result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
+				} catch (NumberFormatException e)
+				{
+					result[i]=Integer.MAX_VALUE;
+				}
+				pos=newpos;
+			}
+		return result;
 	}
 	/**
 	 * 
@@ -65,10 +77,24 @@ public abstract class DataCompression {
 		return result;
 	}
 
+	private static int[] decodeAnchor(String anchor) {
+		String anchorBinString = smsToBin(anchor.toCharArray(),CBITS);
+		return binToAnchorVec(anchorBinString,anchorCodeBook,anchorOffsets);
+		
+	}
+
 	private static int[][] decodeDifs(String difs, int [][] result) throws DecodeException {
 		String s = smsToBin(difs.toCharArray(), CBITS);
 		return huffBinToDifs(s,result);
 		
+	}
+
+	private static int getValueOfHuf(int val) {
+		for (int i=0;i<HUFCODEBOOKLENGTH;i++)
+		{
+			if (huff28[1][i]==val) return huff28[0][i];
+		}
+		return Integer.MIN_VALUE;	// case: nothing found
 	}
 
 	private static int[][] huffBinToDifs(String s, int [][] result) throws DecodeException
@@ -122,35 +148,9 @@ public abstract class DataCompression {
 		return result;
 	}
 
-	private static int getValueOfHuf(int val) {
-		for (int i=0;i<HUFCODEBOOKLENGTH;i++)
-		{
-			if (huff28[1][i]==val) return huff28[0][i];
-		}
-		return Integer.MIN_VALUE;	// case: nothing found
-	}
-
-	private static int[] decodeAnchor(String anchor) {
-		String anchorBinString = smsToBin(anchor.toCharArray(),CBITS);
-		return binToAnchorVec(anchorBinString,anchorCodeBook,anchorOffsets);
-		
-	}
-
-	private static int[] binToAnchorVec(String anchorBinString,
-			int[] anchorcodebook, int[] anchoroffsets) {
-		int [] result= new int[ANCHORLENGTH];
-		int pos=0;
-		for (int i=0; i<ANCHORLENGTH;i++) {
-				int newpos=pos+anchorcodebook[i];
-				try {
-					result[i]=Integer.parseInt(anchorBinString.substring(pos, newpos),2)+anchoroffsets[i];
-				} catch (NumberFormatException e)
-				{
-					result[i]=Integer.MAX_VALUE;
-				}
-				pos=newpos;
-			}
-		return result;
+	public static void main(String[] args) {
+		//6HKQ8B00003NQJIQJC 00000000000D3XrrrrWRkw11Xvy:VF00000400102W
+		//int[][] neu =decode("6HKQ8B00003NQJIQJC00000000000D3XrrrrWRkw11Xvy:VF00000400102W");
 	}
 	
 

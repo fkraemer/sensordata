@@ -1,23 +1,12 @@
 package com.example.sensor.data;
 
-import java.util.Calendar;
 import 	   java.util.Date;
 import		java.util.Arrays;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.text.format.Time;
-import android.view.View.MeasureSpec;
 
 public class DataSet implements Parcelable{
-
-	// TODO constants
-	private Date date;
-	private Date timeOffset;
-	private int localId; // necessary for handling by android-app
-	private String mobileNo;
-	private float[][] data;
-
 
 	public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
 		public DataSet createFromParcel(Parcel in) {
@@ -28,6 +17,14 @@ public class DataSet implements Parcelable{
 			return new DataSet[size];
 		}
 	};
+	private float[][] data;
+	// TODO constants
+	private Date date;
+	private int localId; // necessary for handling by android-app
+	private String mobileNo;
+
+
+	private Date timeOffset;
 	
 //extract the data for each sensor from decoded c-code, form one array per sensor
 	public DataSet(float[][] data, long date, String mobileNo, int localId, int timeOffset)
@@ -46,64 +43,30 @@ public class DataSet implements Parcelable{
 	}
 
 
-	@Override
-	public String toString() {
-		//set different time format here or on construct
-		return Integer.toString(localId)+")  from  +"+mobileNo+"   "+ date.toString();
+	public int describeContents() {
+		return 0;
 	}
+	public Date getDate() {
+		return date;
+	}
+
+
 	public int getLocalId() {
 		return localId;
 	}
 
 
-	public Date getTimeOffset() {
-		return timeOffset;
+
+	public float[] getMeausrements(int sensorNo)
+	{
+		return data[sensorNo];
 	}
 
-
-
-	public void setLocalId(int localId) {
-		this.localId = localId;
-	}
-
-
-	public Date getDate() {
-		return date;
-	}
-
-	public void setDate(Date date) {
-		this.date = date;
-	}
 
 	public String getmobileNo() {
 		return mobileNo;
 	}
 
-	public void setmobileNo(String mobileNo) {
-		this.mobileNo = mobileNo;
-	}
-	
-	public float[] getMeausrements(int sensorNo)
-	{
-		return data[sensorNo];
-	}
-	public Float[] getTempData(int k)
-	{
-		
-		Float[] result = new Float[data[1].length];
-		if (k<4 && k>=0) {		
-			//return float array, first row contains timestamp
-			for (int i=0; i < data[1].length; i++) {
-				try {
-				result[i] =new Float( data[k+4][i]);
-				} catch (NullPointerException e) {		//evntl NullPointer fangen
-					e.printStackTrace();				
-				}
-			}
-		}
-		return result;		
-	}
-	
 	public Float[] getMoistData(int k)
 	{
 		Float[] result = new Float[data[1].length];
@@ -120,27 +83,27 @@ public class DataSet implements Parcelable{
 			Arrays.fill(result, 0);		//out of range calls get back zeros
 		}
 		return result;	
-	}	
-
-
-	public int describeContents() {
-		return 0;
 	}
 
-
-	public void writeToParcel(Parcel dest, int flags) {
-		dest.writeInt(data.length);			//saving array dimensions
-		dest.writeInt(data[1].length);
-		for (int i=0;i<data.length;i++)
-		{
-			dest.writeFloatArray(data[i]);
+	public Float[] getTempData(int k)
+	{
+		
+		Float[] result = new Float[data[1].length];
+		if (k<4 && k>=0) {		
+			//return float array, first row contains timestamp
+			for (int i=0; i < data[1].length; i++) {
+				try {
+				result[i] =new Float( data[k+4][i]);
+				} catch (NullPointerException e) {		//evntl NullPointer fangen
+					e.printStackTrace();				
+				}
+			}
 		}
-		dest.writeInt(localId);
-		dest.writeString(mobileNo);
-		dest.writeLong(date.getTime());
-		dest.writeLong(timeOffset.getTime());
-		
-		
+		return result;		
+	}
+
+	public Date getTimeOffset() {
+		return timeOffset;
 	}
 	
 	private void readFromParcel(Parcel in) {
@@ -154,6 +117,40 @@ public class DataSet implements Parcelable{
 		mobileNo=in.readString();
 		date=new Date(in.readLong());
 		timeOffset= new Date(in.readLong());
+	}
+	public void setDate(Date date) {
+		this.date = date;
+	}
+	
+	public void setLocalId(int localId) {
+		this.localId = localId;
+	}	
+
+
+	public void setmobileNo(String mobileNo) {
+		this.mobileNo = mobileNo;
+	}
+
+
+	@Override
+	public String toString() {
+		//set different time format here or on construct
+		return Integer.toString(localId)+")  from  +"+mobileNo+"   "+ date.toString();
+	}
+	
+	public void writeToParcel(Parcel dest, int flags) {
+		dest.writeInt(data.length);			//saving array dimensions
+		dest.writeInt(data[1].length);
+		for (int i=0;i<data.length;i++)
+		{
+			dest.writeFloatArray(data[i]);
+		}
+		dest.writeInt(localId);
+		dest.writeString(mobileNo);
+		dest.writeLong(date.getTime());
+		dest.writeLong(timeOffset.getTime());
+		
+		
 	}
 	
 

@@ -57,7 +57,7 @@
         
         
         <activity
-            android:name=".ChooseTimeActivity"
+            android:name=".ChoosePeriodActivity"
             android:label="@string/title_activity_choosetime" >
             <intent-filter>
                 <action android:name="com.example.my.first.app.SELECT" />

@@ -1,27 +1,38 @@
 package com.example.my.first.app;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream.GetField;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.URLConnection;
-
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
 public class FtpConnect {
 
+	public static final String password="UWAsensor";
 	public static final String serverUrl="ftp-web.ohost.de";
 	public static final String userName="ftp1881722";
-	public static final String password="UWAsensor";
 
+	public static void downloadDb(FileOutputStream database) throws IOException,MalformedURLException {
+       try {
+	    	FTPClient con = openFTP();
+			con.retrieveFile(DatabaseControl.DATABASE_NAME, database);
+			con.logout();
+		} finally {
+	        if (database != null)
+	           try
+	           {
+	              database.close();
+	           }
+	           catch (IOException ioe)
+	           {
+	              ioe.printStackTrace();
+	           }
+	     }
+	}
+	
 	private static URL getServerUrl() throws MalformedURLException {
 		StringBuilder sb= new StringBuilder("ftp://");
 		sb.append(userName);
@@ -42,6 +53,9 @@ public class FtpConnect {
 		
 	}
 	
+	
+	
+	
 	public static void uploadDb(InputStream bis) throws IOException,MalformedURLException {
 	    try {
 	    	FTPClient con = openFTP();
@@ -52,27 +66,6 @@ public class FtpConnect {
 	           try
 	           {
 	              bis.close();
-	           }
-	           catch (IOException ioe)
-	           {
-	              ioe.printStackTrace();
-	           }
-	     }
-	}
-	
-	
-	
-	
-	public static void downloadDb(FileOutputStream database) throws IOException,MalformedURLException {
-       try {
-	    	FTPClient con = openFTP();
-			con.retrieveFile(DatabaseControl.DATABASE_NAME, database);
-			con.logout();
-		} finally {
-	        if (database != null)
-	           try
-	           {
-	              database.close();
 	           }
 	           catch (IOException ioe)
 	           {

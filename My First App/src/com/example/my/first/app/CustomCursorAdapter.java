@@ -11,9 +11,9 @@ import android.widget.TextView;
 
 
 public class CustomCursorAdapter extends CursorAdapter {
-    private LayoutInflater mLayoutInflater;
-    private Context mContext;
     private boolean [] isBound;
+    private Context mContext;
+    private LayoutInflater mLayoutInflater;
     public CustomCursorAdapter(Context context, Cursor c, boolean[] isBound) {
         super(context, c);
         mContext = context;
@@ -22,11 +22,7 @@ public class CustomCursorAdapter extends CursorAdapter {
     }
 
     @Override
-    public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return mLayoutInflater.inflate(R.layout.list_item_platform_with_receiving, parent, false);
-    }
-
-    public void bindView(View v, Context context, Cursor c) {
+	public void bindView(View v, Context context, Cursor c) {
     	String mobileNo = c.getString(c.getColumnIndex(DatabaseControl.KEY_MOBILENO));
     	long platformId = c.getLong(c.getColumnIndex(DatabaseControl.KEY_ID));
     	String description = c.getString(c.getColumnIndex(DatabaseControl.KEY_DESCR));
@@ -44,5 +40,10 @@ public class CustomCursorAdapter extends CursorAdapter {
         } else {
         	((CheckBox) v.findViewById(R.id.isBoundBox)).setVisibility(View.INVISIBLE);
         }
+    }
+
+    @Override
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        return mLayoutInflater.inflate(R.layout.list_item_platform_with_receiving, parent, false);
     }
 }

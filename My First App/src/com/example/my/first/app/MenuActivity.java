@@ -1,54 +1,25 @@
 package com.example.my.first.app;
 
 
-import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.telephony.SmsMessage;
-import android.util.Log;
-import android.util.SparseBooleanArray;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
-import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Toast;
-import android.database.Cursor;
-
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-
-import com.example.sensor.data.DataCompression;
-import com.example.sensor.data.DataSet;
 import com.example.sensor.data.DataStorage;
-import com.example.sensor.data.DecodeException;
-import com.example.sensor.data.DecodeFatalException;
-import com.example.sensor.data.DecodeRecoverException;
 
 public class MenuActivity extends Activity {
 
-	private ListView list;
-	private String[] data = new String[0];
-	private String[] numbers = new String[0];
-	private String[] adapterFill = new String[0];
-	private DataStorage storage = new DataStorage();
 	private final static String[] NUMBERSOFINTEREST = { "+61431220285" };
+	private String[] adapterFill = new String[0];
+	private String[] data = new String[0];
+	private ListView list;
+	private String[] numbers = new String[0];
+	private DataStorage storage = new DataStorage();
 
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.menu);
@@ -62,6 +33,18 @@ public class MenuActivity extends Activity {
 	}
 	
 
+
+	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		super.onPause();
+	}
+
+	@Override
+	protected void onPostResume() {
+		// TODO Auto-generated method stub
+		super.onPostResume();
+	}
 
 	public void saveSms(String write) {
 		boolean mExternalStorageAvailable = false;
@@ -84,18 +67,6 @@ public class MenuActivity extends Activity {
 			System.out.println("File/Write problems");
 		}
 
-	}
-
-	@Override
-	protected void onPause() {
-		// TODO Auto-generated method stub
-		super.onPause();
-	}
-
-	@Override
-	protected void onPostResume() {
-		// TODO Auto-generated method stub
-		super.onPostResume();
 	}
 
 /**	@TargetApi(9)

@@ -10,13 +10,21 @@ import android.os.IBinder;
 public class MyConnection implements ServiceConnection {
 
 	private boolean bound;
-	DataService service;
 	CountDownLatch latch;
+	DataService service;
 	
 	public MyConnection(CountDownLatch l) {
 		latch=l;
 	}
 	
+	public DataService getService() {
+		return service;
+	}
+
+	public boolean isBound() {
+		return bound;
+	}
+
 	public void onServiceConnected(ComponentName arg0, IBinder localBinder) {
 		bound=true;
 		DataService.LocalBinder bind = (DataService.LocalBinder) localBinder;
@@ -26,14 +34,6 @@ public class MyConnection implements ServiceConnection {
 
 	public void onServiceDisconnected(ComponentName arg0) {
 		bound=false;
-	}
-
-	public boolean isBound() {
-		return bound;
-	}
-
-	public DataService getService() {
-		return service;
 	}
 
 	public void setBound(boolean bound) {
