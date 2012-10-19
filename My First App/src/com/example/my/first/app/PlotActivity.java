@@ -128,7 +128,7 @@ public class PlotActivity extends Activity {
 	private ArrayList<Long> timeList=new ArrayList<Long>();
 	private long timeMax;
 	private long timeMin;
-	private TextView txt1;
+	private TextView txt1;	//may be used for debugging, right now just space holders inbetween the two plots
 	private TextView txt2;
 	private TextView txt3;
 	
@@ -261,9 +261,9 @@ public class PlotActivity extends Activity {
 		//--------------------------------------------------------------
 		
 		//DEBUG -----------------------
-		txt1.setText("showing from " + (new SimpleDateFormat()).format(timeMin));
-		txt2.setText("to	 " + (new SimpleDateFormat()).format(timeMax));
-		txt3.setText(Integer.toString(height));
+		//txt1.setText("showing from " + (new SimpleDateFormat()).format(timeMin));
+		//txt2.setText("to	 " + (new SimpleDateFormat()).format(timeMax));
+		//txt3.setText(Integer.toString(height));
 		//--------------------------
 		
 		for (int i=0;i<TEMP_COUNT;i++) {

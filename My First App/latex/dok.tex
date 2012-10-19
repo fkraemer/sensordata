@@ -92,10 +92,8 @@ The following graph shows the general build-up of the system.
 \end{center}
 
 \subsection{The supported sensor-platform}
-The current release of the application supports a platform with four sensors, each having two subsensors, one for moisture- and one for temperature measurements. An additional sensor is used to collect battery data. The data is then compressed with a Huffman-Code, a method developed by Rachel Cardell-Olivier, and transmitted in a SMS-message.
+The current release of the application supports a platform with four sensors, each having two subsensors, one for moisture- and one for temperature measurements. An additional sensor is used to collect battery data. The data is then compressed with a Huffman-Code, a method developed by Rachel Cardell-Olivier \cite{compression2012}, and transmitted in a SMS-message.
 
-
-TODO insert footnote
 
 \section{Architecture}
 \subsection{Overview}
@@ -143,7 +141,7 @@ The other three query the database to set a period that goes back one day or one
 
 \subsubsection{Plot data}
 Here two plots are arranged to visualize the preselected data. Special about this one is, that it will resize the plots according to the individual screen size. This offers multi-device support and is even important when turning the device to view the data in the landscape view. It is payed attention to, that even in small screen sizes there is enough space to scroll the view and for bigger sizes to keep everything in one window to avoid unnecessary scrolling. Also the range of maximum shown time differs depending on the screen size to provide as much data as possible while still keeping the graphs readable. Smaller devices may just see 12hours of data, while a tablet might be able to view three days at a time.
-This of course is also basically depending on the periods with which the data is collected and the current preferences are not dynamic, but rely on a period of about 30minutes. TODO
+This of course is also basically depending on the periods with which the data is collected and the current preferences are not dynamic, but rely on a periods of about 15-60minutes. 
 
 \subsubsection{Database}
 In this activity a connection with a ftp-server can be etablished to send or retrieve the database-file. The Apache Commons Net 3.1 library\footnote{\url{http://commons.apache.org/net/api-3.1/index.html}} is used for this. The network related actions are executed in AsyncTasks, so the main thread is not stressed by it or blocked in the worst case. To show the user of what is happening in the background there are different dialogs deployed to show the working progress and explain what went wrong in case of an exception. This actually is a quite complex situation, with files being read and written from internal and external storage and also using an internet connection at the same time. The possible exceptions are passed by throw-clauses to suggest to the user in the end what went wrong.
@@ -190,8 +188,9 @@ In the current release CountdownLatches are used to prevent from problems upon b
 
 \subsubsection{Accessing the database}\label{sec:database_safety}
 The advantage of using one service for all actions, that involve the database, is a good overview. It is openend and closed securely just in the start and destroy methods and the resource can be locked for a single binder-thread on demand. Actually this not often necessary, since just the getSms-thread, that checks for new sms periodically and writes data to the database, and a user-invoked thread to read from it could interact at one time. This does not endanger the data-integrity, but having different numbers of timestamps and measurements will provoke an exception in the plot-activity.
-What might do this, is a user trying to change the metadata while measurements are added. TODO
-Also while overwriting the existing database with a downloaded one, the getsms-thread should not try to write. TODO
+What might do this, is a user trying to change the metadata while measurements are added. 
+Also while overwriting the existing database with a downloaded one, the getsms-thread should not try to write. To avoid this a ReentrantReadWriteLock is used in the different threads.
+
 \section{Debugging}\label{sec:Debugging}
 The Android-plugin for Eclipse makes it fairly easy to create a virtual device or debug the application directly on a phone connected by wire to the PC . The phone must have the USB debugging options activated, which can be done in the settings. The convenient eclipse debugger tools can then be used with the usual features like break-points and reading variables during runtime. The Android tool LogCat does also display Exceptions and other runtime output of the application. Depending on the phone this might have to be activated in very individual ways, possibly through hidden settings.
 
@@ -201,9 +200,6 @@ One is likely to encounter odd errors, when trying to debug or just run parts of
 \section{Testing}
 \subsection{          and on-device}
 Since the application can be started on devices during development as described in \textit{\ref{sec:Debugging}}, it is very convenient to test the correct behaviour of the application just on the device. This includes using different devices to ensure for example correct presentation on different screen sizes or hardware compability.
-
-\subsection{database benchmarks}
-TODO: 10years,10platforms, period:30min... too mouch
 
 \section{Risks}
 Upon reinstallation, which must for example be done, when changing the development PC, \underline{all} data of the application is lost. This involves database backups, the preference file and log file on the SD-card.
@@ -224,6 +220,9 @@ Change the phone side to interact dynamically with the server. It has to backup 
 
 \item
 The plots could compare several platforms for the same or different time. It would probably make sense to show average values instead of four line charts for each platform.
+
+\item
+The information about the state of the battery is not used right now and might be displayed either in the PlotActivity or even before that in the ChoosePlatformActivity, while maybe just the latest information or an average should be put.
 
 \end{itemize}
 

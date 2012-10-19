@@ -14,6 +14,7 @@ import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.example.sensor.data.DataCompression;
 import com.example.sensor.data.DecodeException;
@@ -40,55 +41,46 @@ import android.telephony.TelephonyManager;
  * It queries the local and online database, saves the data to be
  * plotted locally and provides it to the plotActivity when bind by it. 
  */
+/**
+ * @author flo
+ *
+ */
 public class DataService extends Service {
 
+	//small nested subclass to implement 
 		public class LocalBinder extends Binder {
 		    DataService getService() {
 		        // Return this instance of DataService so clients can call public methods
 		        return DataService.this;
 		    }
 		}
+		
 	    private Thread checkSmsThread;
 		private Context cx;
 		private DatabaseControl db;
 		//these two ArrayLists connect the mobile numbers with the platform id of the database, where there shall be saved next time
 		private ArrayList<String> lastMobileNo =new ArrayList<String>();
 		private ArrayList<Long> lastPlatformId =new ArrayList<Long>();
+		//this arraylist contains the numbers, that are taken into account when looking for sms, so "normal" non-sensordata sms stay untouched
+		private ArrayList<String> numbersOfInterest= new ArrayList<String>();
 		
 		private final IBinder mBinder = new LocalBinder();
 		private NotificationManager mNotificationManager;
 		
-		private ArrayList<String> numbersOfInterest= new ArrayList<String>();
+		
+		private static final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
 		
 		
 
 	private boolean receivedNewSms=false; //flag, that update to global db is necessary, false for very first start, is updated then
 
+	//checks whether the given number is yet checked for in the inbox
 	public void addNumberOfInterest(String mobileNo) {
 		if (!numbersOfInterest.contains(mobileNo)) numbersOfInterest.add(mobileNo);
 		
 	}
 	
-
-	public void backupDbToWeb() throws MalformedURLException, IOException {
-			InputStream database= new FileInputStream(getDatabasePath(DatabaseControl.DATABASE_NAME));
-			//getting the unique device id
-			final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
-
-		    final String tmDevice, tmSerial, androidId;
-		    androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-
-	    	Calendar c= Calendar.getInstance(); //used to give the files unique filenames
-	    	String uniqueIdentifier="_"+androidId+"_"+Long.toString(c.getTimeInMillis());
-			
-			FtpConnect.uploadDb(database,uniqueIdentifier);
-	}
-
-	
-	public boolean backupToExternal() {
-		return db.backupExternal();
-	}
-	
+	//this makes the given platform to be the currently receiving platform for the given mobile number
 	public void bindNumber(String mobileNo, long platformId) {
 		int listIndex=lastMobileNo.indexOf(mobileNo);
 		if (listIndex==-1) {	//not yet in the list
@@ -98,6 +90,8 @@ public class DataService extends Service {
 			lastPlatformId.set(listIndex, platformId);
 		}
 	}
+	
+	//removes the specific platform from the currently receiving list, if in there
 	public void deleteboundNumber(String mobileNo, long platformId) {
 		int listIndex=lastMobileNo.indexOf(mobileNo);
 		if (listIndex!=-1 && lastPlatformId.get(listIndex)==platformId) {	// in the list and receiving
@@ -110,11 +104,69 @@ public class DataService extends Service {
 
 	//****************************************************************************************************
 	//public methods used by bound activities
+
+	/**
+	 * uploads the current database to an ftp server, which is specified in the {@link FtpConnect} class
+	 * 
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 * 
+	 */
+	public void backupDbToWeb() throws MalformedURLException, IOException {
+		rwl.readLock().lock();
+		try {
+			//get the databse from the context
+			InputStream database= new FileInputStream(getDatabasePath(DatabaseControl.DATABASE_NAME));
+			//getting the unique device id
+			final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
 	
-	public boolean deletePlatform(long platformId) {
-		return db.deletePLATFORM(platformId);
+		    final String tmDevice, tmSerial, androidId;
+		    androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+	
+	    	Calendar c= Calendar.getInstance(); //used to give the files unique filenames
+	    	String uniqueIdentifier="_"+androidId+"_"+Long.toString(c.getTimeInMillis());
+			
+			FtpConnect.uploadDb(database,uniqueIdentifier);
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
 
+	
+	/** this links to {@link DatabaseControl} backupExternal method
+	 * @return 
+	 */
+	public boolean backupToExternal() {
+		rwl.readLock().lock();
+		try {
+			return db.backupExternal();
+		}finally {
+			rwl.readLock().unlock();
+		}
+	}
+	
+	/**Deletes the platform from the database and due to its cascade mode also all the depending data
+	 * 
+	 * @param platformId the platform to be deleted
+	 * @return whether the platform could be deleted
+	 */
+	public boolean deletePlatform(long platformId) {
+		try {
+			rwl.writeLock().lock();
+			return db.deletePLATFORM(platformId);
+		} finally {
+			rwl.writeLock().unlock();
+		}
+	}
+
+	
+	/**This tries to download the latest db from a ftp specified in {@link FtpConnect}
+	 * This is first downloaded to the external storage and only if this was done succeful 
+	 * a copy is made to the assets, which represents the actually used database.
+	 * 
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
 	public void downloadDb() throws MalformedURLException, IOException {
 			//this must be equal in DatabaseControl and here
 			String DB_PATH_EXTERNAL=getExternalFilesDir(null)+"/databases";
@@ -127,30 +179,123 @@ public class DataService extends Service {
 			FileOutputStream fOS= new FileOutputStream(file);
 			FtpConnect.downloadDb(fOS);
 			
-			db=db.updateDatabase(new FileInputStream(file));
+			try {
+				rwl.writeLock().lock();
+				//actually using the new database now
+				db=db.updateDatabase(new FileInputStream(file));
+			} finally {
+				rwl.writeLock().unlock();
+			}
 	}
+			
 	
 	
+	/** 
+	 * @param timeMin 
+	 * @param timeMax
+	 * @param subsensorId
+	 * @return all measurements for the given interval and subsensor, where the upper and lower boundary are included
+	 */
 	public Cursor getMeasuremntByInterval(long timeMin, long timeMax, long subsensorId) {
-		return db.getMeasurementsInterval(timeMin, timeMax, subsensorId);
+		try {
+			rwl.readLock().lock();
+			return db.getMeasurementsInterval(timeMin, timeMax, subsensorId);
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
 	
-	public Cursor getMeasuremntBySubsensor(long subsensorId) {
-		return db.getMeasurement(subsensorId);
+	public Cursor getMeasurementBySubsensor(long subsensorId) {
+		try {
+			rwl.readLock().lock();
+			return db.getMeasurement(subsensorId);
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
 	
 
 	public Cursor getPlatform(long platformId) {
-		return db.getPlatform((int) platformId);
+		try {
+			rwl.readLock().lock();
+			return db.getPlatform((int) platformId);
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
 
 	public Cursor getPlatforms() {
-		return db.getAllPlatforms();
+		try {
+			rwl.readLock().lock();
+			return db.getAllPlatforms();
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
 	
 	public Cursor getSensorsByPlatformId(long platformId) {
-		return db.getSensorsByPlatformId(platformId);
+		try {
+			rwl.readLock().lock();
+			return db.getSensorsByPlatformId(platformId);
+		} finally {
+			rwl.readLock().unlock();
+		}
 	}
+	
+
+	public Cursor getSubsensorsByPlatformId(long platformId) {
+		try {
+			rwl.readLock().lock();
+			return db.getSubsenorsByPlatform(platformId);
+		} finally {
+			rwl.readLock().unlock();
+		}
+	}
+	
+	public long insertPlatform(int lat, int lon,int period, String mobileNo, String descr) {
+		try {
+			rwl.readLock().lock();
+			return db.insertPlatformDefault(lat, lon,period, mobileNo, descr);
+		} finally {
+			rwl.readLock().unlock();
+		}
+	}
+
+
+	public long insertPlatformDefault(int lat, int lon, int period, String mobileNo,String descr) {
+		try {
+			rwl.readLock().lock();
+			return db.insertPlatformDefault(lat, lon, period, mobileNo, descr);
+		} finally {
+			rwl.readLock().unlock();
+		}
+	}
+	
+
+	
+	
+	public boolean updatePlatform(long id, int lon, int lat, int period,String mobileNo, String descr){
+		try {
+			rwl.writeLock().lock();
+			return db.updatePlatform(id, lon,lat,period, mobileNo,descr);
+		} finally {
+			rwl.writeLock().unlock();
+		}
+	}
+	
+	public boolean updateSensor(long id, int offX, int offY, int offZ, int platformId) {
+		try {
+			rwl.writeLock().lock();
+			return db.updateSensor(id, offX, offY, offZ, platformId);
+		} finally {
+			rwl.writeLock().unlock();
+		}
+		
+	}
+
+	//helper methods:
+	//****************************************************************************************************
+	
 	
 	//getSms checks for new Sms of Numbers_of_interest senders
 	//these are logged, decoded, saved into the database and then deleted from the phone-inbox
@@ -187,16 +332,8 @@ public class DataService extends Service {
 					//decoding and putting into the db
 					int [][] sensorData = null;
 					try {
-
-						//special testcase
-						if (body.equals("test.")) {
-							insertTestData();
-							return 20;
-						}
-						
 						//decoding data
 						sensorData = DataCompression.decode(body);
-						
 						
 						//for logging
 						logSms(logString+"|"+sensorData[0][1]+":"+sensorData[0][2]+":"+sensorData[0][3]+":"
@@ -220,23 +357,28 @@ public class DataService extends Service {
 					if (listIndex!=-1){
 						platformId=lastPlatformId.get(listIndex);
 					}
-					//try to find existing platform in the db with this mobileNo, if several take the latest //TODO
-					if (platformId==-1) {
-						 platformId=db.putPlatform(searchNumber);
-					}
-					if (platformId == -1) { //case, have to create new platform:
-						//TODO start translucent activity, ask user for metadata, e.g. GPS and description
-							int period = sensorData[0][0];   //getting period from decoded data
-							platformId=db.insertPlatformDefault(0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
-							
+					//lock before writing
+					rwl.writeLock().lock();
+					try {
+						//try to find existing platform in the db with this mobileNo, if several take the latest //TODO
+						if (platformId==-1) {
+							 platformId=db.putPlatform(searchNumber);
 						}
-					//we might not know about this sensor yet, mark in the bindnumbers:
-					bindNumber(searchNumber, platformId);
-					//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
-					db.putMeasurements(sensorData,0.1f, (int) platformId);			
-					//***************************************************************************************************************************
-					
-					interestCount++;
+						if (platformId == -1) { //case, have to create new platform:
+							//TODO start translucent activity, ask user for metadata, e.g. GPS and description
+								int period = sensorData[0][0];   //getting period from decoded data
+								platformId=db.insertPlatformDefault(0, 0, period, searchNumber, "");	//inserting without metadata, this creates the necessary subsensors
+								
+							}
+						//we might not know about this sensor yet, mark in the bindnumbers:
+						bindNumber(searchNumber, platformId);
+						//subsensors and sensors must have been created for putMeasurements, make sure to do this each time a new platform is inserted
+						db.putMeasurements(sensorData,0.1f, (int) platformId);			
+						//***************************************************************************************************************************
+						interestCount++;
+					} finally {
+						rwl.writeLock().unlock();
+					}
 				}
 				curs.moveToNext();
 			} catch (IllegalArgumentException e) {
@@ -326,43 +468,6 @@ public class DataService extends Service {
 			
 		//read more stringStore lines here
 
-	}
-
-	public Cursor getSubsensorsByPlatformId(long platformId) {
-		return db.getSubsenorsByPlatform(platformId);
-	}
-	
-	public long insertPlatform(int lat, int lon,int period, String mobileNo, String descr) {
-		return db.insertPlatformDefault(lat, lon,period, mobileNo, descr);
-	}
-
-
-	public long insertPlatformDefault(int lat, int lon, int period, String mobileNo,String descr) {
-		return db.insertPlatformDefault(lat, lon, period, mobileNo, descr);
-	}
-		
-	public void insertTestData() {
-		for(int platformNo=1;platformNo<=2;platformNo++) {
-			long testplat = db.insertPlatformDefault(0, 0, 30, "+61123456"+platformNo, "");
-			Cursor subsensorCursor=db.getSubsenorsByPlatform(testplat);
-			int [][] measurements= new int[24*365*5][9];
-			for (int i=0;i<9;i++) {
-				long subsensorId=subsensorCursor.getLong(subsensorCursor.getColumnIndex(DatabaseControl.KEY_ID));
-				subsensorCursor.moveToNext();
-				measurements[0][0]=30;
-				measurements[0][1]=12;
-				measurements[0][2]=9;
-				measurements[0][3]=27;
-				measurements[0][2]=0;
-				measurements[0][3]=0;
-				for (int j=0;j<(24*265*5);j++) {
-					measurements[j][i]=j % 500;	//insert generated 0<data<500 
-				}
-			}
-			db.putMeasurements(measurements, 0.1f, testplat);
-					
-			
-		}
 	}
 
 
@@ -471,9 +576,6 @@ public class DataService extends Service {
 	}
 	
 	
-	//helper methods:
-	//****************************************************************************************************
-	
 	public  boolean restoreFromExternal() {
 		try {
 			//this must be equal in DatabaseControl and here
@@ -536,16 +638,6 @@ public class DataService extends Service {
 		
 		
 
-	}
-	
-	
-	public boolean updatePlatform(long id, int lon, int lat, int period,String mobileNo, String descr){
-		return db.updatePlatform(id, lon,lat,period, mobileNo,descr);
-	}
-	
-	public boolean updateSensor(long id, int offX, int offY, int offZ, int platformId) {
-		return db.updateSensor(id, offX, offY, offZ, platformId);
-		
 	}
 
 	

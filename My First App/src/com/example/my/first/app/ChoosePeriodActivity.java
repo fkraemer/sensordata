@@ -58,7 +58,7 @@ public class ChoosePeriodActivity extends Activity {
 						case 2:	//get last timestamp, go back a day from there
 							Cursor subsensorCursor1=dataService.getSubsensorsByPlatformId(platformId);  
 							long subsensorId1=subsensorCursor1.getLong(subsensorCursor1.getColumnIndex(DatabaseControl.KEY_ID));
-							Cursor measurementCursor1=dataService.getMeasuremntBySubsensor(subsensorId1);	//these are returned in ascending(by timestamp) order
+							Cursor measurementCursor1=dataService.getMeasurementBySubsensor(subsensorId1);	//these are returned in ascending(by timestamp) order
 							measurementCursor1.moveToLast();
 							timeMax=measurementCursor1.getLong(measurementCursor1.getColumnIndex(DatabaseControl.KEY_TIMESTAMP));		
 							timeMin=timeMax-24*60*60*1000;
@@ -66,7 +66,7 @@ public class ChoosePeriodActivity extends Activity {
 						case 3:	//get last timestamp, go back a week from there
 							Cursor subsensorCursor2=dataService.getSubsensorsByPlatformId(platformId);  
 							long subsensorId2=subsensorCursor2.getLong(subsensorCursor2.getColumnIndex(DatabaseControl.KEY_ID));
-							Cursor measurementCursor2=dataService.getMeasuremntBySubsensor(subsensorId2);	//these are returned in ascending(by timestamp) order
+							Cursor measurementCursor2=dataService.getMeasurementBySubsensor(subsensorId2);	//these are returned in ascending(by timestamp) order
 							measurementCursor2.moveToLast();
 							timeMax=measurementCursor2.getLong(measurementCursor2.getColumnIndex(DatabaseControl.KEY_TIMESTAMP));		
 							timeMin=timeMax-7*24*60*60*1000;
@@ -75,7 +75,7 @@ public class ChoosePeriodActivity extends Activity {
 						case 4://get the first and last timestamp
 							Cursor subsensorCursor3=dataService.getSubsensorsByPlatformId(platformId);  
 							long subsensorId3=subsensorCursor3.getLong(subsensorCursor3.getColumnIndex(DatabaseControl.KEY_ID));
-							Cursor measurementCursor3=dataService.getMeasuremntBySubsensor(subsensorId3);	//these are returned in ascending(by timestamp) order
+							Cursor measurementCursor3=dataService.getMeasurementBySubsensor(subsensorId3);	//these are returned in ascending(by timestamp) order
 							timeMin=measurementCursor3.getLong(measurementCursor3.getColumnIndex(DatabaseControl.KEY_TIMESTAMP));
 							measurementCursor3.moveToLast();
 							timeMax=measurementCursor3.getLong(measurementCursor3.getColumnIndex(DatabaseControl.KEY_TIMESTAMP));

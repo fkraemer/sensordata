@@ -72,6 +72,11 @@ public class DatabaseControl {
 			this.context=context;
 		}
 		
+		
+		/**
+		 * This will save the current database to the sd card.
+		 * @return whether there were any IO-Exceptions or successful
+		 */
 		public boolean backupExternal() {
 			try {
 				InputStream inputStream= new FileInputStream(context.getDatabasePath(DATABASE_NAME));
@@ -90,10 +95,11 @@ public class DatabaseControl {
 			return true;
 		}
 		
+		//checks whether there is a copy on the sd card
 		private boolean checkDataBaseExternal(){
 			File file= new File(DB_PATH_EXTERNAL,DATABASE_NAME);
 			return file.exists();
-			}
+		}
 	
 		
 	
